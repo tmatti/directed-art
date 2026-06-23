@@ -1,0 +1,23 @@
+test:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage") %>
+
+local:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>
+
+# Cloudflare R2 (S3-compatible). Every uploaded Artwork/attachment lives here.
+# Credentials and bucket are read from the environment so nothing is committed.
+# Required env vars:
+#   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_ENDPOINT
+#   (R2_ENDPOINT looks like https://<account_id>.r2.cloudflarestorage.com)
+cloudflare:
+  service: S3
+  access_key_id: <%= ENV["R2_ACCESS_KEY_ID"] %>
+  secret_access_key: <%= ENV["R2_SECRET_ACCESS_KEY"] %>
+  bucket: <%= ENV["R2_BUCKET"] %>
+  endpoint: <%= ENV["R2_ENDPOINT"] %>
+  # R2 has a single, automatic region.
+  region: auto
+  # R2 does not support per-object ACLs.
+  public: false

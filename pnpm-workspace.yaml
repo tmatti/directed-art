@@ -1,0 +1,9 @@
+# Supply-chain safety: refuse to install any package version published less
+# than 7 days (10080 minutes) ago. Compromised releases are typically caught
+# and yanked within days, so this delay keeps freshly-poisoned versions out.
+minimumReleaseAge: 10080
+
+# Use a flat (npm-equivalent) node_modules layout. The inertia-rails starter
+# kit's TypeScript relies on module augmentation of the transitive
+# @inertiajs/core, which only resolves under a hoisted layout.
+nodeLinker: hoisted

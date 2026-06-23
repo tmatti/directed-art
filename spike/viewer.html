@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Directed Art — DSL Spike Viewer</title>
+<style>
+  :root { --ink:#222; --prior:#9aa0a6; --hi:#e23b3b; --bg:#faf7f2; --panel:#fff; --line:#e7e2d8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:12px 18px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0; font-weight:700; }
+  header .hint { font-size:12px; color:#777; }
+  main { display:grid; grid-template-columns: 360px 1fr; gap:0; height:calc(100vh - 50px); }
+  .left { border-right:1px solid var(--line); padding:14px; display:flex; flex-direction:column; gap:10px; min-height:0; }
+  textarea { flex:1; width:100%; resize:none; font-family: ui-monospace, monospace; font-size:12px; line-height:1.4; padding:10px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .row { display:flex; gap:8px; align-items:center; }
+  button { font:inherit; font-weight:600; padding:9px 14px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  button:disabled { opacity:.4; cursor:default; }
+  #err { color:#c0392b; font-size:12px; white-space:pre-wrap; min-height:16px; }
+  .right { padding:18px; display:flex; flex-direction:column; align-items:center; gap:14px; min-height:0; overflow:auto; }
+  .stage { background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .meta { text-align:center; max-width:620px; }
+  .counter { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#999; }
+  .title { font-size:22px; font-weight:800; margin:2px 0; }
+  .instruction { font-size:18px; margin:4px 0; }
+  .narration { font-size:13px; color:#888; font-style:italic; }
+  .nav { display:flex; gap:10px; align-items:center; }
+  svg { display:block; border-radius:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Directed Art — DSL Spike Viewer</h1>
+  <span class="hint">Paste the JSON Claude returns → Load. Use ← / → (or buttons) to step through. Page 0 is the full-color cover.</span>
+</header>
+<main>
+  <div class="left">
+    <textarea id="json" spellcheck="false" placeholder="Paste the drawing JSON here…"></textarea>
+    <div class="row">
+      <button class="primary" id="load">Load</button>
+      <button id="sample">Load sample</button>
+    </div>
+    <div id="err"></div>
+  </div>
+  <div class="right">
+    <div class="meta">
+      <div class="counter" id="counter"></div>
+      <div class="title" id="title"></div>
+      <div class="instruction" id="instruction"></div>
+      <div class="narration" id="narration"></div>
+    </div>
+    <div id="stageWrap"></div>
+    <div class="nav">
+      <button id="prev">← Prev</button>
+      <button id="next">Next →</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const SVGNS = "http://www.w3.org/2000/svg";
+let doc = null;     // parsed drawing
+let page = 0;       // 0 = cover, 1..N = steps
+
+// ---- primitive → svg element ------------------------------------------------
+function polar(cx, cy, r, deg){ const a = deg*Math.PI/180; return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) }; }
+
+function arcPath(cx, cy, r, start, end){
+  const s = polar(cx, cy, r, start), e = polar(cx, cy, r, end);
+  const large = Math.abs(end - start) > 180 ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+}
+
+function splinePath(points, closed){
+  if (!points || points.length < 2) return "";
+  const p = points.map(pt => ({ x: pt[0], y: pt[1] }));
+  let pts;
+  if (closed) pts = [p[p.length-1], ...p, p[0], p[1]];
+  else        pts = [p[0], ...p, p[p.length-1]];
+  let d = `M ${pts[1].x} ${pts[1].y}`;
+  for (let i = 1; i < pts.length - 2; i++){
+    const p0 = pts[i-1], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2];
+    const c1x = p1.x + (p2.x - p0.x)/6, c1y = p1.y + (p2.y - p0.y)/6;
+    const c2x = p2.x - (p3.x - p1.x)/6, c2y = p2.y - (p3.y - p1.y)/6;
+    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+  }
+  if (closed) d += " Z";
+  return d;
+}
+
+const FILLABLE = new Set(["circle", "ellipse", "polygon"]);
+function isFillable(p){
+  if (FILLABLE.has(p.type)) return true;
+  if (p.type === "curve" && p.closed) return true;
+  return false;
+}
+
+function el(p){
+  let n;
+  switch (p.type){
+    case "circle":
+      n = document.createElementNS(SVGNS, "circle");
+      n.setAttribute("cx", p.cx); n.setAttribute("cy", p.cy); n.setAttribute("r", p.r);
+      break;
+    case "ellipse":
+      n = document.createElementNS(SVGNS, "ellipse");
+      n.setAttribute("cx", p.cx); n.setAttribute("cy", p.cy);
+      n.setAttribute("rx", p.rx); n.setAttribute("ry", p.ry);
+      if (p.rotate) n.setAttribute("transform", `rotate(${p.rotate} ${p.cx} ${p.cy})`);
+      break;
+    case "line":
+      n = document.createElementNS(SVGNS, "line");
+      n.setAttribute("x1", p.x1); n.setAttribute("y1", p.y1);
+      n.setAttribute("x2", p.x2); n.setAttribute("y2", p.y2);
+      break;
+    case "polyline":
+      n = document.createElementNS(SVGNS, "polyline");
+      n.setAttribute("points", (p.points||[]).map(pt => pt.join(",")).join(" "));
+      break;
+    case "polygon":
+      n = document.createElementNS(SVGNS, "polygon");
+      n.setAttribute("points", (p.points||[]).map(pt => pt.join(",")).join(" "));
+      break;
+    case "arc":
+      n = document.createElementNS(SVGNS, "path");
+      n.setAttribute("d", arcPath(p.cx, p.cy, p.r, p.start, p.end));
+      break;
+    case "curve":
+      n = document.createElementNS(SVGNS, "path");
+      n.setAttribute("d", splinePath(p.points, !!p.closed));
+      break;
+    default:
+      return null;
+  }
+  return n;
+}
+
+// mode: "cover" | "prior" | "current"
+function paint(node, p, mode){
+  node.setAttribute("stroke-linecap", "round");
+  node.setAttribute("stroke-linejoin", "round");
+  if (mode === "cover"){
+    if (isFillable(p)) { node.setAttribute("fill", p.color || "#dfe6ee"); node.setAttribute("stroke", "#222"); node.setAttribute("stroke-width", 3); }
+    else { node.setAttribute("fill", "none"); node.setAttribute("stroke", p.color || "#222"); node.setAttribute("stroke-width", 4); }
+  } else if (mode === "prior"){
+    node.setAttribute("fill", "none"); node.setAttribute("stroke", "var(--prior)"); node.setAttribute("stroke-width", 3);
+  } else { // current
+    node.setAttribute("fill", "none"); node.setAttribute("stroke", "var(--hi)"); node.setAttribute("stroke-width", 5);
+  }
+}
+
+function newSvg(){
+  const w = doc.canvas?.width || 600, h = doc.canvas?.height || 600;
+  const svg = document.createElementNS(SVGNS, "svg");
+  const scale = Math.min(1, 620 / w);
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("width", w * scale); svg.setAttribute("height", h * scale);
+  svg.classList.add("stage");
+  const bg = document.createElementNS(SVGNS, "rect");
+  bg.setAttribute("x",0); bg.setAttribute("y",0); bg.setAttribute("width",w); bg.setAttribute("height",h); bg.setAttribute("fill","#fff");
+  svg.appendChild(bg);
+  return svg;
+}
+
+function render(){
+  const wrap = document.getElementById("stageWrap");
+  wrap.innerHTML = "";
+  if (!doc) return;
+  const svg = newSvg();
+  const steps = doc.steps || [];
+
+  if (page === 0){
+    // cover: every primitive, full color
+    steps.forEach(s => (s.primitives||[]).forEach(p => { const n = el(p); if (n){ paint(n, p, "cover"); svg.appendChild(n); } }));
+    document.getElementById("counter").textContent = "Cover";
+    document.getElementById("title").textContent = doc.title || doc.subject || "";
+    document.getElementById("instruction").textContent = "Here's what we'll draw!";
+    document.getElementById("narration").textContent = "";
+  } else {
+    // step page: cumulative line-art, current step highlighted
+    for (let i = 0; i < page; i++){
+      const mode = (i === page - 1) ? "current" : "prior";
+      (steps[i].primitives||[]).forEach(p => { const n = el(p); if (n){ paint(n, p, mode); svg.appendChild(n); } });
+    }
+    const st = steps[page - 1] || {};
+    document.getElementById("counter").textContent = `Step ${page} of ${steps.length}`;
+    document.getElementById("title").textContent = "";
+    document.getElementById("instruction").textContent = st.instruction || "";
+    document.getElementById("narration").textContent = st.narration ? "🔊 " + st.narration : "";
+  }
+  wrap.appendChild(svg);
+  document.getElementById("prev").disabled = page <= 0;
+  document.getElementById("next").disabled = !doc || page >= (doc.steps||[]).length;
+}
+
+function load(text){
+  const err = document.getElementById("err");
+  err.textContent = "";
+  try {
+    let t = text.trim();
+    // tolerate ```json fences
+    t = t.replace(/^```(json)?/i, "").replace(/```$/,"").trim();
+    const parsed = JSON.parse(t);
+    if (!parsed.steps || !Array.isArray(parsed.steps)) throw new Error("Missing a top-level \"steps\" array.");
+    doc = parsed; page = 0; render();
+  } catch (e){
+    doc = null; err.textContent = "Could not parse JSON:\n" + e.message;
+    document.getElementById("stageWrap").innerHTML = "";
+  }
+}
+
+document.getElementById("load").onclick = () => load(document.getElementById("json").value);
+document.getElementById("prev").onclick = () => { if (page > 0){ page--; render(); } };
+document.getElementById("next").onclick = () => { if (doc && page < doc.steps.length){ page++; render(); } };
+window.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") document.getElementById("next").click();
+  if (e.key === "ArrowLeft")  document.getElementById("prev").click();
+});
+
+// ---- tiny built-in sample so you can confirm the viewer works ---------------
+const SAMPLE = {
+  subject: "a happy sun",
+  title: "Let's draw a happy sun!",
+  ageBand: "4-6",
+  canvas: { width: 600, height: 600 },
+  steps: [
+    { instruction: "Draw a big circle in the middle.", narration: "Draw a big round circle right in the middle of your paper!",
+      primitives: [ { type: "circle", cx: 300, cy: 300, r: 120, color: "#ffd23f" } ] },
+    { instruction: "Add pointy triangle rays around it.", narration: "Now add pointy sun rays all around the circle!",
+      primitives: [
+        { type: "polygon", points: [[300,150],[285,180],[315,180]], color: "#ffb703" },
+        { type: "polygon", points: [[300,450],[285,420],[315,420]], color: "#ffb703" },
+        { type: "polygon", points: [[150,300],[180,285],[180,315]], color: "#ffb703" },
+        { type: "polygon", points: [[450,300],[420,285],[420,315]], color: "#ffb703" }
+      ] },
+    { instruction: "Give the sun two happy eyes.", narration: "Give your sun two little eyes!",
+      primitives: [ { type: "circle", cx: 265, cy: 285, r: 12, color: "#222" }, { type: "circle", cx: 335, cy: 285, r: 12, color: "#222" } ] },
+    { instruction: "Add a big smile.", narration: "And the best part — a great big smile!",
+      primitives: [ { type: "arc", cx: 300, cy: 320, r: 45, start: 20, end: 160, color: "#222" } ] }
+  ]
+};
+document.getElementById("sample").onclick = () => { document.getElementById("json").value = JSON.stringify(SAMPLE, null, 2); load(JSON.stringify(SAMPLE)); };
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Steps render as line-art; color lives on the cover only
+
+Primitives carry an optional color, but rendering uses it selectively. Step pages render as line-art: prior steps' Primitives in a calm dark outline and the current Step's Primitives Highlighted (red). The cover page renders the finished drawing in full suggested color. The same frozen Primitive set thus has two render modes — line-art (per Step) and full-color (cover).
+
+Two reasons drive this. First, the Highlight mechanic depends on color to mean "draw this now"; if step pages were already full-color, the red highlight would be ambiguous, so steps stay line-art to keep "what to add now" unmistakable. Second, traditional directed drawing is line-art the child colors themselves — color is the child's creative freedom on paper — but a flat gray cover is unappealing, so the cover shows the exciting colored goal. A future dev rendering a Step should deliberately *ignore* primitive color and apply the prior/current/highlight scheme instead; it is not a bug that step color is dropped.

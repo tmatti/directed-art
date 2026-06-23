@@ -1,0 +1,5 @@
+# The AI emits primitives, step grouping, and instructions in one structured generation
+
+Generating a Directed Drawing is a single structured AI output containing: the full Primitive set, an assignment of those primitives into ordered semantic groups (each group = one Step), and per-group instruction text + Narration text. The app renders Step N as group N's primitives Highlighted over all prior groups, and reads the narration aloud — it does no partitioning or instruction-authoring itself. Step granularity (count and detail) is driven by the Profile's Age Band.
+
+We chose one combined generation over a separate partition/instruction pass because the AI understands drawing logic ("these two triangles are the ears") that an app-side heuristic cannot, and emitting groups + instructions while it draws makes the teaching sequence and narration fall out for free. The cost is that regenerating steps means regenerating the drawing; we accept that for now (regeneration is cheap, pre-confirmation) and will revisit a separate pass if step-only re-rolls become valuable. This output is the central data contract everything downstream renders from.

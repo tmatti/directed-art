@@ -1,0 +1,5 @@
+# Drawings are a constrained primitive DSL, not generated images
+
+A Directed Drawing is represented as an ordered list of Steps, where each Step appends a list of **Primitives** (a small JSON shape vocabulary — circle, ellipse, line, arc, polygon, etc. — on a fixed canvas) that the app deterministically renders to SVG. Step N renders as the union of Primitives from Steps 1..N, with Step N's Primitives highlighted.
+
+We rejected per-step raster image generation (DALL·E / Stable Diffusion): it cannot guarantee that step 5 is exactly step 4 plus new marks — the subject drifts between renders, which is fatal for a copy-along tutorial. We rejected raw LLM-authored SVG paths: freehand `<path>` data from an LLM is wonky and hard to keep consistent. The constrained primitive DSL is deterministic, trivially additive, cheap to validate, renders identically every time, and matches how directed drawing is actually taught ("draw a circle, add two ovals for ears") — making the simple-shapes look a pedagogical feature rather than a limitation. A richer `path` primitive can be added later without changing the model.

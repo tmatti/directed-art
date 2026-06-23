@@ -1,0 +1,5 @@
+# Generation is whole-then-partition, with a confirmation gate
+
+The AI generates the *complete* final drawing (the full Primitive set) during the planning conversation, the child confirms they're happy with the finished picture, and only then does the app partition the frozen Primitive set into an ordered sequence of Steps. Rendering Step N reveals Primitives 1..N of the fixed whole.
+
+We rejected step-by-step generation (generate Step 1, then Step 2 conditioned on it, etc.). Whole-then-partition guarantees consistency by construction — the finished image is computed once and frozen, so it cannot drift as steps accumulate, and the AI can never paint itself into a corner where a late step has no sensible finish. It also matches how humans author directed drawings (draw the finished thing, then reverse-engineer the teaching order) and lets the AI order steps by drawing logic with the whole picture in view. The cost — committing to the whole picture before stepping — is mitigated by the confirmation gate: the child previews and approves (or regenerates) the final drawing before any partitioning, while regeneration is still cheap.

@@ -1,0 +1,5 @@
+# LLM access via RubyLLM, schema-enforced output, model tiering
+
+All LLM calls go through the RubyLLM gem rather than a single provider SDK, so the provider/model can be chosen and swapped per call as needs and economics change. The default provider is Claude (Anthropic); the abstraction means that's a configuration choice, not an architectural commitment.
+
+The Directed Drawing generation depends on the AI emitting the Primitive-DSL contract (primitives + step groups + instructions + Narration) as valid structured data, not prose. We use RubyLLM's structured-output / tool-calling support to request schema-conforming output, and — critically — the app validates every generation against the DSL schema itself and rejects/retries on malformed output, so a provider or model swap can never silently produce broken drawings. We tier models for cost: a capable model (e.g. Opus/Sonnet) for drawing generation, a cheap fast model (e.g. Haiku) for the safety classification gate and lightweight chat turns. Provider-shaped concerns (prompts, schema mechanism) stay behind the RubyLLM seam.

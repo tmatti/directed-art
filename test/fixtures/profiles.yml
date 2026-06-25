@@ -1,0 +1,16 @@
+# age_band: 0 => ages_4_6, 1 => ages_7_10
+mia:
+  user: one
+  name: Mia
+  age_band: 0
+
+leo:
+  user: one
+  name: Leo
+  age_band: 1
+
+# Belongs to the other account; used to prove cross-account scoping.
+other_kid:
+  user: two
+  name: Sam
+  age_band: 0

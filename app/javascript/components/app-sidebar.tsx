@@ -1,5 +1,5 @@
 import { Link } from "@inertiajs/react"
-import { BookOpen, Folder, LayoutGrid } from "lucide-react"
+import { BookOpen, Folder, LayoutGrid, Palette, Users } from "lucide-react"
 
 import { NavFooter } from "@/components/nav-footer"
 import { NavMain } from "@/components/nav-main"
@@ -13,7 +13,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { dashboard } from "@/routes"
+import { activeProfile, dashboard } from "@/routes"
+import profiles from "@/routes/ProfilesController"
 import type { NavItem } from "@/types"
 
 import AppLogo from "./app-logo"
@@ -23,6 +24,16 @@ const mainNavItems: NavItem[] = [
     title: "Dashboard",
     href: dashboard.index().url,
     icon: LayoutGrid,
+  },
+  {
+    title: "Profiles",
+    href: profiles.index().url,
+    icon: Users,
+  },
+  {
+    title: "Who's drawing?",
+    href: activeProfile().url,
+    icon: Palette,
   },
 ]
 

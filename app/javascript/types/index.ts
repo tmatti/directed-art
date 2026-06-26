@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react"
 export interface Auth {
   user: User
   session: Pick<Session, "id">
+  active_profile: Profile | null
 }
 
 export interface BreadcrumbItem {
@@ -42,4 +43,12 @@ export interface Session {
   user_agent: string
   ip_address: string
   created_at: string
+}
+
+export type AgeBand = "ages_4_6" | "ages_7_10"
+
+export interface Profile {
+  id: number
+  name: string
+  age_band: AgeBand
 }

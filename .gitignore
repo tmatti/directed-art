@@ -35,6 +35,7 @@
 
 # Vite
 /public/vite*
+/.vite
 node_modules
 *.local
 

@@ -52,3 +52,64 @@ export interface Profile {
   name: string
   age_band: AgeBand
 }
+
+// --- Directed Drawing / Walkthrough (ADR-0001) ---
+
+// A point is an [x, y] pair on the canvas (origin top-left, y-down).
+export type Point = [number, number]
+
+// The constrained Primitive vocabulary the renderer draws to SVG. `color` is
+// suggested for the cover; Step pages deliberately ignore it (ADR-0008).
+export type Primitive =
+  | { type: "circle"; cx: number; cy: number; r: number; color?: string }
+  | {
+      type: "ellipse"
+      cx: number
+      cy: number
+      rx: number
+      ry: number
+      rotate?: number
+      color?: string
+    }
+  | {
+      type: "line"
+      x1: number
+      y1: number
+      x2: number
+      y2: number
+      color?: string
+    }
+  | { type: "polyline"; points: Point[]; color?: string }
+  | { type: "polygon"; points: Point[]; color?: string }
+  | {
+      type: "arc"
+      cx: number
+      cy: number
+      r: number
+      start: number
+      end: number
+      color?: string
+    }
+  | { type: "curve"; points: Point[]; closed?: boolean; color?: string }
+
+export interface DrawingStep {
+  id: number
+  position: number
+  instruction: string
+  narration: string | null
+  primitives: Primitive[]
+}
+
+export interface Canvas {
+  width: number
+  height: number
+}
+
+export interface DirectedDrawing {
+  id: number
+  subject: string
+  title: string
+  current_step: number
+  canvas: Canvas
+  steps: DrawingStep[]
+}

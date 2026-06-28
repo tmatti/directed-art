@@ -1,0 +1,40 @@
+{
+  "subject": "a happy sun",
+  "title": "Let's draw a happy sun!",
+  "ageBand": "4-6",
+  "canvas": { "width": 600, "height": 600 },
+  "steps": [
+    {
+      "instruction": "Draw a big circle in the middle.",
+      "narration": "Draw a big round circle right in the middle of your paper!",
+      "primitives": [
+        { "type": "circle", "cx": 300, "cy": 300, "r": 120, "color": "#ffd23f" }
+      ]
+    },
+    {
+      "instruction": "Add pointy triangle rays around it.",
+      "narration": "Now add pointy sun rays all around the circle!",
+      "primitives": [
+        { "type": "polygon", "points": [[300, 150], [285, 180], [315, 180]], "color": "#ffb703" },
+        { "type": "polygon", "points": [[300, 450], [285, 420], [315, 420]], "color": "#ffb703" },
+        { "type": "polygon", "points": [[150, 300], [180, 285], [180, 315]], "color": "#ffb703" },
+        { "type": "polygon", "points": [[450, 300], [420, 285], [420, 315]], "color": "#ffb703" }
+      ]
+    },
+    {
+      "instruction": "Give the sun two happy eyes.",
+      "narration": "Give your sun two little eyes!",
+      "primitives": [
+        { "type": "circle", "cx": 265, "cy": 285, "r": 12, "color": "#222222" },
+        { "type": "circle", "cx": 335, "cy": 285, "r": 12, "color": "#222222" }
+      ]
+    },
+    {
+      "instruction": "Add a big smile.",
+      "narration": "And the best part — a great big smile!",
+      "primitives": [
+        { "type": "arc", "cx": 300, "cy": 320, "r": 45, "start": 20, "end": 160, "color": "#222222" }
+      ]
+    }
+  ]
+}

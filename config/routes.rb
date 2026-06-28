@@ -19,6 +19,12 @@ Rails.application.routes.draw do
   resources :profiles, except: [ :show ]
   resource :active_profile, only: [ :show, :update ]
 
+  resources :directed_drawings, only: [ :index, :show ] do
+    # The resumable Walkthrough position, persisted so a child returns to where
+    # they left off.
+    resource :current_step, only: [ :update ], module: :directed_drawings
+  end
+
   namespace :settings do
     resource :profile, only: [ :show, :update ]
     resource :password, only: [ :show, :update ]

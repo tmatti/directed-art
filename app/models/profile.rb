@@ -6,6 +6,7 @@ class Profile < ApplicationRecord
 
   belongs_to :user
   has_many :directed_drawings, dependent: :destroy
+  has_many :drawing_plans, dependent: :destroy
 
   enum :age_band, AGE_BANDS, validate: true
 

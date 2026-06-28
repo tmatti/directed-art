@@ -1,0 +1,209 @@
+import { Form, Head, router } from "@inertiajs/react"
+import { ArrowRight, Palette, Sparkles } from "lucide-react"
+
+import Heading from "@/components/heading"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
+import AppLayout from "@/layouts/app-layout"
+import { ageBandLabel } from "@/lib/age-bands"
+import drawingPlans from "@/routes/DrawingPlansController"
+import type { AgeBand, BreadcrumbItem } from "@/types"
+
+interface ChatAnswer {
+  key: string
+  question: string
+  value: string
+}
+
+interface ChatQuestion {
+  key: string
+  prompt: string
+  suggestions: string[]
+  optional: boolean
+}
+
+interface PlanSummary {
+  subject: string
+  action: string
+  mood: string
+  background: string
+  age_band: AgeBand
+}
+
+interface PlanChat {
+  id: number
+  status: "building" | "completed"
+  answers: ChatAnswer[]
+  question: ChatQuestion | null
+  plan: PlanSummary | null
+}
+
+const breadcrumbs: BreadcrumbItem[] = [{ title: "New drawing", href: "" }]
+
+export default function Show({ plan }: { plan: PlanChat }) {
+  return (
+    <AppLayout breadcrumbs={breadcrumbs}>
+      <Head title="Let's make a drawing" />
+
+      <div className="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col gap-6 p-4 pt-8">
+        <Heading
+          title="Let's make a drawing!"
+          description="Answer a few quick questions and we'll plan your picture."
+        />
+
+        <div className="flex flex-1 flex-col gap-4">
+          {plan.answers.map((answer) => (
+            <Exchange
+              key={answer.key}
+              question={answer.question}
+              answer={answer.value}
+            />
+          ))}
+
+          {plan.question && <Question plan={plan} question={plan.question} />}
+
+          {plan.plan && <Summary plan={plan.plan} />}
+        </div>
+      </div>
+    </AppLayout>
+  )
+}
+
+// A completed question-and-answer pair in the transcript.
+function Exchange({ question, answer }: { question: string; answer: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-muted-foreground text-sm">{question}</p>
+      <div className="bg-primary text-primary-foreground self-end rounded-2xl rounded-br-sm px-4 py-2 font-medium">
+        {answer}
+      </div>
+    </div>
+  )
+}
+
+// The current question: a friendly prompt, tappable suggestion chips, a
+// free-text entry, and — for optional slots — a Skip.
+function Question({
+  plan,
+  question,
+}: {
+  plan: PlanChat
+  question: ChatQuestion
+}) {
+  return (
+    <Card className="border-primary/30">
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-lg font-semibold">{question.prompt}</p>
+
+        <div className="flex flex-wrap gap-2">
+          {question.suggestions.map((suggestion) => (
+            <Form
+              key={suggestion}
+              action={drawingPlans.update(plan.id)}
+              resetOnSuccess
+            >
+              <input type="hidden" name="answer" value={suggestion} />
+              <Button
+                type="submit"
+                variant="outline"
+                size="lg"
+                className="rounded-full"
+              >
+                {suggestion}
+              </Button>
+            </Form>
+          ))}
+        </div>
+
+        <Form
+          action={drawingPlans.update(plan.id)}
+          resetOnSuccess
+          disableWhileProcessing
+          className="flex gap-2"
+        >
+          {({ processing, errors }) => (
+            <>
+              <div className="flex flex-1 flex-col gap-1">
+                <div className="flex gap-2">
+                  <Input
+                    name="answer"
+                    type="text"
+                    autoFocus
+                    placeholder="…or type your own"
+                    aria-label={question.prompt}
+                  />
+                  <Button
+                    type="submit"
+                    size="icon-lg"
+                    disabled={processing}
+                    aria-label="Send"
+                  >
+                    {processing ? <Spinner /> : <ArrowRight />}
+                  </Button>
+                </div>
+                {errors.answer && (
+                  <p className="text-destructive text-sm">{errors.answer}</p>
+                )}
+              </div>
+            </>
+          )}
+        </Form>
+
+        {question.optional && (
+          <Form action={drawingPlans.update(plan.id)}>
+            <input type="hidden" name="skip" value="1" />
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+            >
+              Skip this one
+            </Button>
+          </Form>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// The assembled Drawing Plan, shown once every slot is filled. Complexity is
+// derived from the Profile's Age Band (ADR-0003), shown here, never asked.
+function Summary({ plan }: { plan: PlanSummary }) {
+  const rows: [string, string][] = [
+    ["Subject", plan.subject],
+    ["Action", plan.action],
+    ["Mood", plan.mood],
+    ["Background", plan.background],
+    ["Level", ageBandLabel(plan.age_band)],
+  ]
+
+  return (
+    <Card className="border-primary/30">
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <Sparkles className="text-primary size-5" /> Your drawing plan is
+          ready!
+        </div>
+
+        <dl className="grid grid-cols-[7rem_1fr] gap-x-4 gap-y-2 text-sm">
+          {rows.map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="font-medium">{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <Button
+          onClick={() => router.post(drawingPlans.create().url)}
+          size="lg"
+        >
+          <Palette /> Plan another drawing
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}

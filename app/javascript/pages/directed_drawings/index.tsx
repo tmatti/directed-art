@@ -1,7 +1,8 @@
-import { Head, Link } from "@inertiajs/react"
-import { Palette } from "lucide-react"
+import { Form, Head, Link } from "@inertiajs/react"
+import { Palette, Plus } from "lucide-react"
 
 import Heading from "@/components/heading"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardDescription,
@@ -10,7 +11,18 @@ import {
 } from "@/components/ui/card"
 import AppLayout from "@/layouts/app-layout"
 import directedDrawings from "@/routes/DirectedDrawingsController"
+import drawingPlans from "@/routes/DrawingPlansController"
 import type { BreadcrumbItem } from "@/types"
+
+function NewDrawingButton() {
+  return (
+    <Form action={drawingPlans.create()}>
+      <Button type="submit">
+        <Plus /> New drawing
+      </Button>
+    </Form>
+  )
+}
 
 interface DrawingSummary {
   id: number
@@ -29,18 +41,24 @@ export default function Index({ drawings }: { drawings: DrawingSummary[] }) {
       <Head title="Drawings" />
 
       <div className="flex h-full flex-1 flex-col gap-6 p-4">
-        <Heading
-          title="Drawings"
-          description="Pick a drawing to walk through, step by step."
-        />
+        <div className="flex items-center justify-between gap-4">
+          <Heading
+            title="Drawings"
+            description="Pick a drawing to walk through, step by step."
+          />
+          <NewDrawingButton />
+        </div>
 
         {drawings.length === 0 ? (
           <Card className="items-center text-center">
             <CardHeader className="w-full">
               <CardTitle>No drawings yet</CardTitle>
               <CardDescription>
-                Drawings you create will show up here, ready to walk through.
+                Start your first drawing and it&apos;ll show up here.
               </CardDescription>
+              <div className="pt-2">
+                <NewDrawingButton />
+              </div>
             </CardHeader>
           </Card>
         ) : (

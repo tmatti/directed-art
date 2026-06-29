@@ -19,8 +19,9 @@ class DrawingPlansController < InertiaController
 
   def update
     plan = Current.active_profile.drawing_plans.find(params[:id])
+    curated = params[:from_chip] == "1"
 
-    if params[:skip].present? ? plan.skip : plan.answer(params[:answer])
+    if params[:skip].present? ? plan.skip : plan.answer(params[:answer], curated: curated)
       redirect_to drawing_plan_path(plan)
     else
       redirect_to drawing_plan_path(plan),

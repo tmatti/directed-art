@@ -25,6 +25,10 @@ interface ChatQuestion {
   optional: boolean
 }
 
+interface RedirectNotice {
+  message: string
+}
+
 interface PlanSummary {
   subject: string
   action: string
@@ -39,6 +43,7 @@ interface PlanChat {
   answers: ChatAnswer[]
   question: ChatQuestion | null
   plan: PlanSummary | null
+  redirect: RedirectNotice | null
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: "New drawing", href: "" }]
@@ -63,12 +68,26 @@ export default function Show({ plan }: { plan: PlanChat }) {
             />
           ))}
 
+          {plan.redirect && <Redirect notice={plan.redirect} />}
+
           {plan.question && <Question plan={plan} question={plan.question} />}
 
           {plan.plan && <Summary planId={plan.id} plan={plan.plan} />}
         </div>
       </div>
     </AppLayout>
+  )
+}
+
+// A gentle nudge shown when a free-text Subject was off-limits: the child is
+// steered back to the curated chips rather than told they did something wrong
+// (ADR-0003). The off-limits text is never echoed back.
+function Redirect({ notice }: { notice: RedirectNotice }) {
+  return (
+    <div className="flex items-start gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+      <Sparkles className="mt-0.5 size-4 shrink-0" />
+      <p>{notice.message}</p>
+    </div>
   )
 }
 
@@ -105,7 +124,11 @@ function Question({
               action={drawingPlans.update(plan.id)}
               resetOnSuccess
             >
+              {/* Curated chips are safe by construction and bypass the safety
+                  gate (ADR-0003, layer 1); `from_chip` marks the answer as
+                  curated so the server skips the classifier. */}
               <input type="hidden" name="answer" value={suggestion} />
+              <input type="hidden" name="from_chip" value="1" />
               <Button
                 type="submit"
                 variant="outline"

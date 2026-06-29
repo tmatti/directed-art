@@ -6,9 +6,18 @@
 # is generated yet; this records the child's intent only.
 class DrawingPlan < ApplicationRecord
   belongs_to :profile
+  # The Directed Drawing this Plan's generation produced, set by the job on
+  # success (ADR-0009). Null until then.
+  belongs_to :directed_drawing, optional: true
 
   enum :age_band, Profile::AGE_BANDS, validate: true
-  enum :status, { building: 0, completed: 1 }, default: :building, validate: true
+  # The Plan's linear lifecycle: assembled through the chat (building →
+  # completed), then submitted for generation (generating → ready, or failed
+  # when the generator can't produce a schema-valid drawing). The wait screen
+  # polls this from generating until ready (ADR-0009).
+  enum :status,
+    { building: 0, completed: 1, generating: 2, ready: 3, failed: 4 },
+    default: :building, validate: true
 
   # One question per Plan attribute (ADR-0003). Curated suggestions are safe by
   # construction, so most input never needs moderation, and an optional slot's
@@ -30,7 +39,9 @@ class DrawingPlan < ApplicationRecord
       [ "the sky", "a forest", "outer space", "under the sea" ], "no background")
   ].freeze
 
-  validates :subject, presence: true, if: :completed?
+  # Subject is required the moment the Plan leaves the chat — it's the one slot
+  # that can't be skipped, and generation depends on it.
+  validates :subject, presence: true, unless: :building?
 
   # The next unanswered question, or nil once every slot is filled.
   def next_slot
@@ -51,8 +62,32 @@ class DrawingPlan < ApplicationRecord
         suggestions: next_slot.suggestions,
         optional: next_slot.optional?
       },
-      plan: completed? ? { subject:, action:, mood:, background:, age_band: } : nil
+      plan: building? ? nil : { subject:, action:, mood:, background:, age_band: }
     }
+  end
+
+  # The confirmed Plan attributes handed across the generation seam (ADR-0006).
+  # Age Band is included so the generator can scale Step granularity by age.
+  def attributes_for_generation
+    { subject:, action:, mood:, background:, age_band: }
+  end
+
+  # Hand the Plan to the background generator: flip to generating and enqueue the
+  # job (ADR-0009). Allowed from completed (first submission) or failed (a retry
+  # after the generator gave up). A no-op otherwise, so a double click or an
+  # already-generating Plan never enqueues twice.
+  def submit_for_generation
+    return false unless completed? || failed?
+
+    generating!
+    GenerateDirectedDrawingJob.perform_later(self)
+    true
+  end
+
+  # The status the wait screen polls (ADR-0009): the lifecycle state plus the
+  # produced drawing's id once ready, so the screen knows where to send the child.
+  def as_generation
+    { id:, status:, directed_drawing_id: }
   end
 
   # Record the child's answer (a chip or free text) for the current question,

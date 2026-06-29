@@ -14,6 +14,17 @@ class DrawingPlansTest < ActionDispatch::IntegrationTest
     DrawingPlan.last
   end
 
+  # Swap the Subject safety gate for the duration of a block, restoring the
+  # suite default in teardown so one test's stub can't leak into another
+  # (mirrors the generation seam's swap-and-restore convention).
+  def with_safety_gate(gate)
+    original = DrawingPlan.subject_safety_gate
+    DrawingPlan.subject_safety_gate = gate
+    yield
+  ensure
+    DrawingPlan.subject_safety_gate = original
+  end
+
   # --- Starting the conversation ---
 
   test "POST create starts a building plan for the active profile and asks Subject first" do
@@ -129,6 +140,69 @@ class DrawingPlansTest < ActionDispatch::IntegrationTest
     patch drawing_plan_path(others), params: { answer: "a dragon" }
     assert_response :not_found
     assert_nil others.reload.subject
+  end
+
+  # --- Subject safety gate (ADR-0003) ---
+
+  test "a free-text Subject is classified by the gate and accepted when allowed" do
+    gate = FakeSubjectSafetyGate.new(allow: true)
+    plan = start_plan
+
+    with_safety_gate(gate) do
+      patch drawing_plan_path(plan), params: { answer: "a friendly dragon" }
+    end
+
+    assert_equal "a friendly dragon", plan.reload.subject
+    assert_equal "action", plan.reload.next_slot.key
+    assert_equal "a friendly dragon", gate.last_subject
+  end
+
+  test "an off-limits free-text Subject is gently redirected, not errored, and logged" do
+    gate = FakeSubjectSafetyGate.new(allow: false)
+    plan = start_plan
+
+    assert_difference -> { SubjectRejection.count }, 1 do
+      with_safety_gate(gate) do
+        patch drawing_plan_path(plan), params: { answer: "something scary" }
+      end
+    end
+
+    plan.reload
+    assert_nil plan.subject
+    assert plan.building?
+    assert_equal "subject", plan.next_slot.key
+    assert_redirected_to drawing_plan_path(plan)
+
+    # redirected, not errored: no error is attached to the answer field
+    assert_nil session[:inertia_errors]
+
+    # the chat re-asks Subject with a gentle redirect notice
+    get drawing_plan_path(plan)
+    assert_equal "subject", inertia.props[:plan][:question][:key]
+    assert_not_nil inertia.props[:plan][:redirect]
+    assert_kind_of String, inertia.props[:plan][:redirect][:message]
+
+    # the rejected Subject is logged to tune from real data
+    rejection = SubjectRejection.find_by!(subject: "something scary")
+    assert_equal plan, rejection.drawing_plan
+    assert_equal profiles(:mia), rejection.profile
+  end
+
+  test "a suggestion-chip Subject bypasses the gate and is accepted without classification" do
+    # A gate that denies everything: chips must still go through, because they're
+    # curated safe-by-construction (ADR-0003, layer 1).
+    gate = FakeSubjectSafetyGate.new(allow: false)
+    plan = start_plan
+
+    assert_no_difference -> { SubjectRejection.count } do
+      with_safety_gate(gate) do
+        patch drawing_plan_path(plan), params: { answer: "a dragon", from_chip: "1" }
+      end
+    end
+
+    assert_equal "a dragon", plan.reload.subject
+    assert_equal "action", plan.reload.next_slot.key
+    assert_nil gate.last_subject
   end
 
   # --- Guards ---

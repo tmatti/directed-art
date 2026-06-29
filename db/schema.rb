@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_29_004031) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_29_012227) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -74,6 +74,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_004031) do
     t.index ["directed_drawing_id", "position"], name: "index_steps_on_directed_drawing_id_and_position", unique: true
   end
 
+  create_table "subject_rejections", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "drawing_plan_id", null: false
+    t.bigint "profile_id", null: false
+    t.text "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["drawing_plan_id"], name: "index_subject_rejections_on_drawing_plan_id"
+    t.index ["profile_id"], name: "index_subject_rejections_on_profile_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
@@ -91,4 +101,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_004031) do
   add_foreign_key "sessions", "profiles", column: "active_profile_id", on_delete: :nullify
   add_foreign_key "sessions", "users"
   add_foreign_key "steps", "directed_drawings"
+  add_foreign_key "subject_rejections", "drawing_plans"
+  add_foreign_key "subject_rejections", "profiles"
 end

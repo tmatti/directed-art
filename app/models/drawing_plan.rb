@@ -9,6 +9,17 @@ class DrawingPlan < ApplicationRecord
   # The Directed Drawing this Plan's generation produced, set by the job on
   # success (ADR-0009). Null until then.
   belongs_to :directed_drawing, optional: true
+  # Subjects the safety gate refused while this Plan was being built (ADR-0003),
+  # logged to tune the classifier from real data.
+  has_many :subject_rejections, dependent: :destroy
+
+  # The Subject safety gate (ADR-0003): the cheap-LLM classifier that free-text
+  # and transcribed-voice Subjects pass through before acceptance. Curated
+  # suggestion chips are safe by construction and bypass it. Defaults to the
+  # real RubyLLM-backed `SubjectSafetyGate`; the test suite swaps in the fake via
+  # `test_helper`, and individual tests may inject their own stub and restore it
+  # in teardown (same convention as `GenerateDirectedDrawingJob.generator`).
+  class_attribute :subject_safety_gate, default: SubjectSafetyGate.new
 
   enum :age_band, Profile::AGE_BANDS, validate: true
   # The Plan's linear lifecycle: assembled through the chat (building →
@@ -49,7 +60,11 @@ class DrawingPlan < ApplicationRecord
   end
 
   # The conversation state the chat page renders: the transcript so far, the
-  # current question (nil once complete), and the assembled Plan on completion.
+  # current question (nil once complete), the assembled Plan on completion, and —
+  # when the last free-text Subject was refused — a gentle redirect notice that
+  # steers the child back to the safe suggestion chips (ADR-0003).
+  REDIRECT_MESSAGE = "Let's draw something fun instead — how about one of these?"
+
   def as_chat
     {
       id: id,
@@ -62,8 +77,17 @@ class DrawingPlan < ApplicationRecord
         suggestions: next_slot.suggestions,
         optional: next_slot.optional?
       },
-      plan: building? ? nil : { subject:, action:, mood:, background:, age_band: }
+      plan: building? ? nil : { subject:, action:, mood:, background:, age_band: },
+      redirect: redirect_notice
     }
+  end
+
+  # The gentle redirect shown while the chat is still asking for a Subject after
+  # a refusal. Nil once the Subject is filled (the question moves on) or when no
+  # free-text Subject has been refused. The off-limits text is never echoed back
+  # to the child — only the nudge toward the curated chips.
+  def redirect_notice
+    { message: REDIRECT_MESSAGE } if next_slot&.key == "subject" && subject_rejections.exists?
   end
 
   # The confirmed Plan attributes handed across the generation seam (ADR-0006).
@@ -100,8 +124,18 @@ class DrawingPlan < ApplicationRecord
   # completing the Plan once the last slot is filled. Blank answers are rejected
   # so the required Subject is never lost. Returns false when there's nothing to
   # answer or the answer is empty.
-  def answer(value)
-    fill(next_slot, value.to_s.strip)
+  #
+  # A free-text or transcribed-voice **Subject** is classified by the safety gate
+  # before it's accepted (ADR-0003); a `curated:` answer (a suggestion chip, safe
+  # by construction) bypasses the gate. Only the Subject slot is gated — the
+  # optional slots are never classified.
+  def answer(value, curated: false)
+    slot = next_slot
+    typed = value.to_s.strip
+    return false if slot.nil? || typed.blank?
+    return fill(slot, typed) if curated || slot.key != "subject"
+
+    gate_subject(slot, typed)
   end
 
   # Skip the current optional question, accepting its sensible default. The
@@ -141,5 +175,17 @@ class DrawingPlan < ApplicationRecord
     self[slot.key] = value
     self.status = :completed if next_slot.nil?
     save
+  end
+
+  # Run a free-text Subject through the safety gate (ADR-0003): fill the slot on
+  # allow, or on deny record the rejection and leave the Subject blank so the
+  # chat re-asks it with a gentle redirect notice. A denial is a redirect, not an
+  # error — it returns truthy so the controller never attaches an "answer" error.
+  def gate_subject(slot, typed)
+    verdict = subject_safety_gate.call(typed)
+    return fill(slot, typed) if verdict.allowed?
+
+    subject_rejections.create!(subject: typed, profile: profile)
+    true
   end
 end

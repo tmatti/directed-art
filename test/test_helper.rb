@@ -9,6 +9,7 @@ require "inertia_rails/minitest"
 # canned spike drawing instead of a live model. Required before the test default
 # below is wired.
 require_relative "support/fake_drawing_generator"
+require_relative "support/fake_subject_safety_gate"
 
 module SignInHelper
   def sign_in(user)
@@ -42,6 +43,13 @@ end
 # (ADR-0006). Individual tests may swap in their own stub and restore this in
 # teardown.
 GenerateDirectedDrawingJob.generator = FakeDrawingGenerator.new
+
+# The Subject safety gate (ADR-0003) defaults to the real RubyLLM-backed
+# SubjectSafetyGate in production; tests inject the fake (allowing by default so
+# the existing chat flows run untouched) so the safety flow is deterministic
+# without a live model. Individual tests swap in a configured fake and restore
+# this in teardown.
+DrawingPlan.subject_safety_gate = FakeSubjectSafetyGate.new
 
 class ActionDispatch::IntegrationTest
   include SignInHelper

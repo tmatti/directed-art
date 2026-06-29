@@ -7,6 +7,9 @@ class Profile < ApplicationRecord
   belongs_to :user
   has_many :directed_drawings, dependent: :destroy
   has_many :drawing_plans, dependent: :destroy
+  # Subjects the safety gate refused for this child (ADR-0003), logged per
+  # Profile so rejections can be aggregated per child or across the app.
+  has_many :subject_rejections, dependent: :destroy
 
   enum :age_band, AGE_BANDS, validate: true
 

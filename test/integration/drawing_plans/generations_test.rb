@@ -1,0 +1,107 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+# The submit-and-poll surface of the generation pipeline (ADR-0009): a completed
+# Plan is handed to the background job, and the wait screen polls a status
+# endpoint that reports pending until the Directed Drawing is ready.
+class DrawingPlans::GenerationsTest < ActionDispatch::IntegrationTest
+  setup do
+    sign_in users(:one)
+    @session = users(:one).sessions.last
+    @session.update!(active_profile: profiles(:mia))
+  end
+
+  def completed_plan(profile: profiles(:mia))
+    profile.drawing_plans.create!(
+      age_band: profile.age_band,
+      subject: "a dragon", action: "flying", mood: "silly", background: "the sky",
+      status: :completed
+    )
+  end
+
+  test "POST create enqueues the generation job and flips the plan to generating" do
+    plan = completed_plan
+
+    assert_enqueued_with(job: GenerateDirectedDrawingJob) do
+      post drawing_plan_generation_path(plan)
+    end
+
+    assert_redirected_to drawing_plan_generation_path(plan)
+    assert plan.reload.generating?
+  end
+
+  test "GET show reports pending while the job has not finished" do
+    plan = completed_plan
+    post drawing_plan_generation_path(plan)
+
+    get drawing_plan_generation_path(plan)
+    assert_response :success
+    assert_equal "generating", inertia.props[:generation][:status]
+    assert_nil inertia.props[:generation][:directed_drawing_id]
+  end
+
+  test "GET show reports ready with the drawing id once the job completes" do
+    plan = completed_plan
+
+    perform_enqueued_jobs do
+      post drawing_plan_generation_path(plan)
+    end
+
+    plan.reload
+    assert plan.ready?
+
+    get drawing_plan_generation_path(plan)
+    assert_equal "ready", inertia.props[:generation][:status]
+    assert_equal plan.directed_drawing_id, inertia.props[:generation][:directed_drawing_id]
+    assert_not_nil plan.directed_drawing
+    assert_equal "a dragon", plan.directed_drawing.subject
+  end
+
+  test "the produced drawing is visible to its profile in the index" do
+    plan = completed_plan
+    perform_enqueued_jobs { post drawing_plan_generation_path(plan) }
+
+    get directed_drawings_path
+    ids = inertia.props[:drawings].map { |d| d["id"] }
+    assert_includes ids, plan.reload.directed_drawing_id
+  end
+
+  test "submitting a still-building plan does not enqueue and sends back to the chat" do
+    building = profiles(:mia).drawing_plans.create!(age_band: profiles(:mia).age_band)
+
+    assert_no_enqueued_jobs do
+      post drawing_plan_generation_path(building)
+    end
+    assert building.reload.building?
+    assert_redirected_to drawing_plan_path(building)
+  end
+
+  # --- Scoping (ADR-0004) ---
+
+  test "cannot generate from another profile's plan" do
+    others = profiles(:other_kid).drawing_plans.create!(
+      age_band: profiles(:other_kid).age_band, subject: "a cat", status: :completed
+    )
+    assert_no_enqueued_jobs do
+      post drawing_plan_generation_path(others)
+    end
+    assert_response :not_found
+  end
+
+  # --- Guards ---
+
+  test "requires authentication" do
+    sign_out
+    plan = completed_plan
+    post drawing_plan_generation_path(plan)
+    assert_redirected_to sign_in_path
+  end
+
+  test "redirects to the profile picker when no profile is active" do
+    plan = completed_plan
+    @session.update!(active_profile: nil)
+    post drawing_plan_generation_path(plan)
+    assert_redirected_to active_profile_path
+  end
+end

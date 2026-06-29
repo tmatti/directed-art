@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_28_200001) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_28_200002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -32,11 +32,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_28_200001) do
     t.integer "age_band", null: false
     t.string "background"
     t.datetime "created_at", null: false
+    t.bigint "directed_drawing_id"
     t.string "mood"
     t.bigint "profile_id", null: false
     t.integer "status", default: 0, null: false
     t.string "subject"
     t.datetime "updated_at", null: false
+    t.index ["directed_drawing_id"], name: "index_drawing_plans_on_directed_drawing_id"
     t.index ["profile_id"], name: "index_drawing_plans_on_profile_id"
   end
 
@@ -82,6 +84,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_28_200001) do
   end
 
   add_foreign_key "directed_drawings", "profiles"
+  add_foreign_key "drawing_plans", "directed_drawings", on_delete: :nullify
   add_foreign_key "drawing_plans", "profiles"
   add_foreign_key "profiles", "users"
   add_foreign_key "sessions", "profiles", column: "active_profile_id", on_delete: :nullify

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import AppLayout from "@/layouts/app-layout"
 import { ageBandLabel } from "@/lib/age-bands"
+import drawingPlansGenerations from "@/routes/DrawingPlans/GenerationsController"
 import drawingPlans from "@/routes/DrawingPlansController"
 import type { AgeBand, BreadcrumbItem } from "@/types"
 
@@ -34,7 +35,7 @@ interface PlanSummary {
 
 interface PlanChat {
   id: number
-  status: "building" | "completed"
+  status: "building" | "completed" | "generating" | "ready" | "failed"
   answers: ChatAnswer[]
   question: ChatQuestion | null
   plan: PlanSummary | null
@@ -64,7 +65,7 @@ export default function Show({ plan }: { plan: PlanChat }) {
 
           {plan.question && <Question plan={plan} question={plan.question} />}
 
-          {plan.plan && <Summary plan={plan.plan} />}
+          {plan.plan && <Summary planId={plan.id} plan={plan.plan} />}
         </div>
       </div>
     </AppLayout>
@@ -171,7 +172,7 @@ function Question({
 
 // The assembled Drawing Plan, shown once every slot is filled. Complexity is
 // derived from the Profile's Age Band (ADR-0003), shown here, never asked.
-function Summary({ plan }: { plan: PlanSummary }) {
+function Summary({ planId, plan }: { planId: number; plan: PlanSummary }) {
   const rows: [string, string][] = [
     ["Subject", plan.subject],
     ["Action", plan.action],
@@ -197,12 +198,23 @@ function Summary({ plan }: { plan: PlanSummary }) {
           ))}
         </dl>
 
-        <Button
-          onClick={() => router.post(drawingPlans.create().url)}
-          size="lg"
-        >
-          <Palette /> Plan another drawing
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button
+            onClick={() =>
+              router.post(drawingPlansGenerations.create(planId).url)
+            }
+            size="lg"
+          >
+            <Sparkles /> Make my drawing!
+          </Button>
+          <Button
+            onClick={() => router.post(drawingPlans.create().url)}
+            variant="ghost"
+            size="lg"
+          >
+            <Palette /> Plan another drawing
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

@@ -21,7 +21,12 @@ Rails.application.routes.draw do
 
   # The guided planning chat that assembles a Drawing Plan, one question at a
   # time, for the active Profile.
-  resources :drawing_plans, only: [ :create, :show, :update ]
+  resources :drawing_plans, only: [ :create, :show, :update ] do
+    # Submits a completed Plan for background generation and serves the
+    # "drawing your picture…" wait screen, which polls show until the Directed
+    # Drawing is ready (ADR-0009).
+    resource :generation, only: [ :create, :show ], module: :drawing_plans
+  end
 
   resources :directed_drawings, only: [ :index, :show ] do
     # The resumable Walkthrough position, persisted so a child returns to where

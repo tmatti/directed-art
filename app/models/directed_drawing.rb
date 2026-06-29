@@ -9,6 +9,11 @@ class DirectedDrawing < ApplicationRecord
 
   enum :age_band, Profile::AGE_BANDS, validate: true
 
+  # A generation produces an unconfirmed candidate; only once the child confirms
+  # the finished-picture preview does it become a steppable Walkthrough
+  # (ADR-0002). Unconfirmed candidates are never listed or served.
+  scope :confirmed, -> { where.not(confirmed_at: nil) }
+
   validates :subject, presence: true
   validates :title, presence: true
   validates :current_step, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
@@ -35,6 +40,18 @@ class DirectedDrawing < ApplicationRecord
         )
       end
     )
+  end
+
+  # Whether the child has approved the finished-picture preview at the
+  # confirmation gate (ADR-0002).
+  def confirmed?
+    confirmed_at.present?
+  end
+
+  # Record the child's "I love it!" — the candidate becomes a steppable
+  # Walkthrough. Idempotent, so the confirmation time is never moved by a repeat.
+  def confirm!
+    update!(confirmed_at: Time.current) unless confirmed?
   end
 
   # The last navigable page of the Walkthrough: the finish page sits one past the

@@ -73,21 +73,27 @@ class DrawingPlan < ApplicationRecord
   end
 
   # Hand the Plan to the background generator: flip to generating and enqueue the
-  # job (ADR-0009). Allowed from completed (first submission) or failed (a retry
-  # after the generator gave up). A no-op otherwise, so a double click or an
-  # already-generating Plan never enqueues twice.
+  # job (ADR-0009). Allowed from completed (first submission), failed (a retry
+  # after the generator gave up), or ready-but-unconfirmed (the child previewed
+  # the candidate and asked to try again, ADR-0002). In the last case the unloved
+  # candidate is discarded first, so only the newest preview ever survives. A
+  # no-op otherwise, so a double click, an in-flight generation, or a confirmed
+  # drawing never enqueues twice.
   def submit_for_generation
-    return false unless completed? || failed?
+    return false unless completed? || failed? || replaceable_candidate?
 
+    discard_candidate
     generating!
     GenerateDirectedDrawingJob.perform_later(self)
     true
   end
 
-  # The status the wait screen polls (ADR-0009): the lifecycle state plus the
-  # produced drawing's id once ready, so the screen knows where to send the child.
+  # The status the wait screen polls (ADR-0009): the lifecycle state, the
+  # produced drawing's id, and — once ready and awaiting confirmation — the
+  # candidate's render payload so the gate can show the finished picture
+  # full-color before any stepping (ADR-0002).
   def as_generation
-    { id:, status:, directed_drawing_id: }
+    { id:, status:, directed_drawing_id:, drawing: unconfirmed_candidate&.as_walkthrough }
   end
 
   # Record the child's answer (a chip or free text) for the current question,
@@ -106,6 +112,28 @@ class DrawingPlan < ApplicationRecord
   end
 
   private
+
+  # The candidate awaiting the confirmation gate: the produced drawing while it's
+  # still unconfirmed. Nil before generation finishes and again once confirmed.
+  def unconfirmed_candidate
+    directed_drawing unless directed_drawing&.confirmed?
+  end
+
+  # A ready Plan still showing an unconfirmed candidate can be regenerated; a
+  # confirmed drawing is final and must not be replaced.
+  def replaceable_candidate?
+    ready? && unconfirmed_candidate.present?
+  end
+
+  # Drop the unconfirmed candidate before a regeneration so the replaced preview
+  # leaves nothing behind. The owning reference is cleared first, then the row
+  # (and its Steps) destroyed.
+  def discard_candidate
+    candidate = unconfirmed_candidate or return
+
+    self.directed_drawing = nil
+    candidate.destroy!
+  end
 
   def fill(slot, value)
     return false if slot.nil? || value.blank?

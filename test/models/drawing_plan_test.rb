@@ -102,6 +102,50 @@ class DrawingPlanTest < ActiveSupport::TestCase
     assert_includes @plan.errors[:subject], "can't be blank"
   end
 
+  # --- The wait-screen / confirmation-gate payload (ADR-0009, ADR-0002) ---
+
+  def candidate_drawing
+    DirectedDrawing.create_from_plan!(
+      profile: profiles(:mia),
+      plan: {
+        "subject" => "a dragon", "title" => "Let's draw a dragon!",
+        "steps" => [
+          { "instruction" => "Draw a circle.",
+            "primitives" => [ { "type" => "circle", "cx" => 300, "cy" => 300, "r" => 120 } ] }
+        ]
+      }
+    )
+  end
+
+  test "as_generation carries no candidate drawing while still generating" do
+    @plan.update!(subject: "a dragon", status: :generating)
+
+    payload = @plan.as_generation
+    assert_equal "generating", payload[:status]
+    assert_nil payload[:directed_drawing_id]
+    assert_nil payload[:drawing]
+  end
+
+  test "as_generation reveals the candidate's cover once ready for confirmation" do
+    drawing = candidate_drawing
+    @plan.update!(subject: "a dragon", status: :ready, directed_drawing: drawing)
+
+    payload = @plan.as_generation
+    assert_equal "ready", payload[:status]
+    assert_equal drawing.id, payload[:directed_drawing_id]
+    assert_equal drawing.id, payload[:drawing][:id]
+    assert_equal "Let's draw a dragon!", payload[:drawing][:title]
+    assert payload[:drawing][:steps].any?
+  end
+
+  test "as_generation hides the drawing once it has been confirmed" do
+    drawing = candidate_drawing
+    drawing.confirm!
+    @plan.update!(subject: "a dragon", status: :ready, directed_drawing: drawing)
+
+    assert_nil @plan.as_generation[:drawing]
+  end
+
   # --- Scoping ---
 
   test "belongs to a profile and is destroyed with it" do

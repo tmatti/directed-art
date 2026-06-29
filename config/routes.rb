@@ -29,6 +29,10 @@ Rails.application.routes.draw do
   end
 
   resources :directed_drawings, only: [ :index, :show ] do
+    # The confirmation gate (ADR-0002): the child accepts the finished-picture
+    # preview, turning the generated candidate into a steppable Walkthrough.
+    resource :confirmation, only: [ :create ], module: :directed_drawings
+
     # The resumable Walkthrough position, persisted so a child returns to where
     # they left off.
     resource :current_step, only: [ :update ], module: :directed_drawings

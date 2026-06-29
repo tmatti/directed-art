@@ -19,6 +19,10 @@ Rails.application.routes.draw do
   resources :profiles, except: [ :show ]
   resource :active_profile, only: [ :show, :update ]
 
+  # The guided planning chat that assembles a Drawing Plan, one question at a
+  # time, for the active Profile.
+  resources :drawing_plans, only: [ :create, :show, :update ]
+
   resources :directed_drawings, only: [ :index, :show ] do
     # The resumable Walkthrough position, persisted so a child returns to where
     # they left off.

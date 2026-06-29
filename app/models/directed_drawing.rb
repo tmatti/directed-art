@@ -58,6 +58,13 @@ class DirectedDrawing < ApplicationRecord
     update!(confirmed_at: Time.current) unless confirmed?
   end
 
+  # Repeat the Walkthrough: send the child back to the cover so they re-walk
+  # the Steps from the start and can upload another Artwork at the finish
+  # (ADR-0008 — a DirectedDrawing collects many Artworks over time).
+  def repeat!
+    update!(current_step: 0)
+  end
+
   # The last navigable page of the Walkthrough: the finish page sits one past the
   # final Step. Cover is page 0, Steps are 1..N, finish is N+1.
   def last_page

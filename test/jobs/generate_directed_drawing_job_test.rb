@@ -15,8 +15,8 @@ class GenerateDirectedDrawingJobTest < ActiveJob::TestCase
   end
 
   teardown do
-    # Restore the real (faked-for-this-slice) generator after any injection.
-    GenerateDirectedDrawingJob.generator = DrawingGenerator.new
+    # Restore the faked generator (the test default) after any injection.
+    GenerateDirectedDrawingJob.generator = FakeDrawingGenerator.new
   end
 
   # A generator stub returning whatever it's given, counting its invocations so
@@ -64,7 +64,7 @@ class GenerateDirectedDrawingJobTest < ActiveJob::TestCase
   end
 
   test "a transient bad generation that later succeeds still produces a ready drawing" do
-    valid = JSON.parse(DrawingGenerator::CANNED_DRAWING.read)
+    valid = JSON.parse(FakeDrawingGenerator::CANNED_DRAWING.read)
     flaky = Object.new
     flaky.define_singleton_method(:attempt) { @attempt = (@attempt || 0) + 1 }
     flaky.define_singleton_method(:call) do |_plan|

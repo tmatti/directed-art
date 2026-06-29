@@ -10,9 +10,10 @@
 class GenerateDirectedDrawingJob < ApplicationJob
   queue_as :default
 
-  # The generation seam (ADR-0006). Defaults to the faked generator for this
-  # slice; tests inject their own, and the real RubyLLM generator swaps in here
-  # without the rest of the pipeline changing.
+  # The generation seam (ADR-0006). Defaults to the real RubyLLM-backed
+  # DrawingGenerator; the test suite swaps in the fake (FakeDrawingGenerator) via
+  # test_helper so flows run without a live model, and individual tests may
+  # inject their own stub and restore it in teardown.
   class_attribute :generator, default: DrawingGenerator.new
 
   # The number of generation attempts before giving up on a Plan. Each malformed

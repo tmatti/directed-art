@@ -51,6 +51,10 @@ gem "authentication-zero"
 # Brings Rails named routes to javascript
 gem "typelizer"
 
+# One delightful Ruby framework for every major AI provider — the LLM seam
+# behind DrawingGenerator (ADR-0006). Default provider Claude, swappable.
+gem "ruby_llm"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

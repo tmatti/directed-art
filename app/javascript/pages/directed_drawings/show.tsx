@@ -1,11 +1,21 @@
 import { Head, router } from "@inertiajs/react"
-import { Camera, ChevronLeft, ChevronRight, Volume2 } from "lucide-react"
+import {
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Repeat,
+  Volume2,
+} from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import DrawingCanvas from "@/components/drawing-canvas"
 import { Button } from "@/components/ui/button"
 import AppLayout from "@/layouts/app-layout"
-import { directedDrawingArtworks, directedDrawingCurrentStep } from "@/routes"
+import {
+  directedDrawingArtworks,
+  directedDrawingCurrentStep,
+  directedDrawingRepeat,
+} from "@/routes"
 import directedDrawings from "@/routes/DirectedDrawingsController"
 import type { Artwork, BreadcrumbItem, DirectedDrawing, Profile } from "@/types"
 
@@ -70,6 +80,21 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
       preserveScroll: true,
     })
     if (fileInput.current) fileInput.current.value = ""
+  }
+
+  // Repeat the Directed Drawing (ADR-0008): reset the Walkthrough to the cover
+  // so the child re-walks the Steps from the start and can upload another
+  // Artwork at the finish. The server is the source of truth for current_step,
+  // so the local page follows it back to 0 once the repeat is confirmed.
+  const repeatDrawing = () => {
+    router.post(
+      directedDrawingRepeat(drawing.id).url,
+      {},
+      {
+        preserveScroll: true,
+        onSuccess: () => setPage(0),
+      },
+    )
   }
 
   const isCover = page === 0
@@ -172,6 +197,10 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
                 </div>
               </div>
             )}
+
+            <Button onClick={repeatDrawing} size="lg" className="w-full">
+              <Repeat /> Draw again
+            </Button>
           </div>
         )}
 

@@ -37,6 +37,11 @@ Rails.application.routes.draw do
     # they left off.
     resource :current_step, only: [ :update ], module: :directed_drawings
 
+    # Repeat an existing, confirmed Directed Drawing: re-walk its Steps from the
+    # start (ADR-0008 — a DirectedDrawing has many Artworks). Resetting the
+    # position lets the child finish and upload another Artwork.
+    resource :repeat, only: [ :create ], module: :directed_drawings
+
     # Optional photo of the child's real paper drawing, captured at the finish
     # page and stored on R2 (ADR-0009). Many because a drawing can be repeated.
     resources :artworks, only: [ :create ], module: :directed_drawings

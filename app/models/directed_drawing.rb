@@ -6,6 +6,10 @@
 class DirectedDrawing < ApplicationRecord
   belongs_to :profile
   has_many :steps, -> { order(:position) }, dependent: :destroy, inverse_of: :directed_drawing
+  # Photos of the child's real paper drawings, captured at the finish page and
+  # stored via Active Storage on R2. Many because a drawing can be repeated
+  # (ADR-0009).
+  has_many :artworks, dependent: :destroy
 
   enum :age_band, Profile::AGE_BANDS, validate: true
 

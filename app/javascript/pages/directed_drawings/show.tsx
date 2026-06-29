@@ -1,11 +1,21 @@
 import { Head, router } from "@inertiajs/react"
-import { Camera, ChevronLeft, ChevronRight, Repeat, Volume2 } from "lucide-react"
+import {
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Repeat,
+  Volume2,
+} from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import DrawingCanvas from "@/components/drawing-canvas"
 import { Button } from "@/components/ui/button"
 import AppLayout from "@/layouts/app-layout"
-import { directedDrawingArtworks, directedDrawingCurrentStep, directedDrawingRepeat } from "@/routes"
+import {
+  directedDrawingArtworks,
+  directedDrawingCurrentStep,
+  directedDrawingRepeat,
+} from "@/routes"
 import directedDrawings from "@/routes/DirectedDrawingsController"
 import type { Artwork, BreadcrumbItem, DirectedDrawing, Profile } from "@/types"
 

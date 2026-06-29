@@ -30,6 +30,10 @@ class DirectedDrawingsTest < ActionDispatch::IntegrationTest
     }
   end
 
+  def photo_upload
+    fixture_file_upload("test.png", "image/png")
+  end
+
   # --- Serving the Walkthrough to the active Profile ---
 
   test "GET show serves the active profile's drawing with its steps" do
@@ -49,6 +53,47 @@ class DirectedDrawingsTest < ActionDispatch::IntegrationTest
     assert_response :success
     ids = inertia.props[:drawings].map { |d| d[:id] }
     assert_includes ids, @drawing.id
+  end
+
+  # --- Per-Profile gallery (ADR-0004) ---
+  #
+  # The gallery lists each Directed Drawing with its finished AI reference
+  # picture (the full-color cover), any photographed Artwork(s), and a link to
+  # revisit or resume the Walkthrough.
+
+  test "GET index includes each drawing's finished reference for the gallery cover" do
+    get directed_drawings_path
+    assert_response :success
+
+    entry = inertia.props[:drawings].find { |d| d[:id] == @drawing.id }
+    assert_equal 600, entry[:canvas][:width]
+    assert_equal 600, entry[:canvas][:height]
+    # The cover renders every step's primitives, so the gallery entry carries them.
+    assert_equal 2, entry[:steps].length
+    primitives = entry[:steps].first[:primitives]
+    assert primitives.present?
+    assert_equal "circle", primitives.first[:type]
+  end
+
+  test "GET index shows each drawing's associated Artworks when present" do
+    @drawing.artworks.create!(photo: photo_upload)
+
+    get directed_drawings_path
+    assert_response :success
+
+    entry = inertia.props[:drawings].find { |d| d[:id] == @drawing.id }
+    artworks = entry[:artworks]
+    assert_equal 1, artworks.length
+    assert_equal @drawing.artworks.last.id, artworks.first[:id]
+    assert artworks.first[:photo_url].present?
+  end
+
+  test "GET index lists an empty Artworks set for a drawing with none" do
+    get directed_drawings_path
+    assert_response :success
+
+    entry = inertia.props[:drawings].find { |d| d[:id] == @drawing.id }
+    assert_equal [], entry[:artworks]
   end
 
   # --- Profile / account scoping (ADR-0004) ---
@@ -71,6 +116,22 @@ class DirectedDrawingsTest < ActionDispatch::IntegrationTest
     ids = inertia.props[:drawings].map { |d| d[:id] }
     assert_includes ids, @drawing.id
     assert_not_includes ids, leos.id
+  end
+
+  test "index does not leak another profile's drawings or their artworks" do
+    leos = confirmed_drawing(profile: profiles(:leo))
+    leos.artworks.create!(photo: photo_upload)
+
+    get directed_drawings_path
+    assert_response :success
+
+    ids = inertia.props[:drawings].map { |d| d[:id] }
+    assert_not_includes ids, leos.id
+
+    # Artworks are nested under the active profile's drawings only, so another
+    # profile's artwork can never surface in this gallery.
+    artwork_ids = inertia.props[:drawings].flat_map { |d| d[:artworks].map { |a| a[:id] } }
+    assert_not_includes artwork_ids, leos.artworks.last.id
   end
 
   # --- Only confirmed drawings are steppable (ADR-0002) ---

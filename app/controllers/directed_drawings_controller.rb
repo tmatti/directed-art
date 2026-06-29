@@ -8,9 +8,15 @@ class DirectedDrawingsController < InertiaController
   include RequiresActiveProfile
 
   def index
+    drawings = Current.active_profile.directed_drawings.confirmed.order(:created_at)
+      .includes(:steps, artworks: { photo_attachment: :blob })
+
     render inertia: {
-      drawings: Current.active_profile.directed_drawings.confirmed.order(:created_at)
-        .as_json(only: %i[id subject title current_step])
+      # The gallery lists each Directed Drawing with its finished AI reference
+      # (the full-color cover, rendered from the step primitives) and any
+      # photographed Artwork(s), linking back to revisit or resume the
+      # Walkthrough (ADR-0004).
+      drawings: drawings.map { |drawing| gallery_entry(drawing) }
     }
   end
 
@@ -23,9 +29,24 @@ class DirectedDrawingsController < InertiaController
       # The child's photographed real drawings, shown on the finish page so they
       # can admire and re-shoot their work. URLs are signed and served via
       # Active Storage (R2 in production).
-      artworks: drawing.artworks.map do |artwork|
-        { id: artwork.id, photo_url: url_for(artwork.photo) }
-      end
+      artworks: drawing.artworks.map { |artwork| artwork_payload(artwork) }
     }
+  end
+
+  private
+
+  # The signed URL to an Artwork's photo, served via Active Storage (R2 in
+  # production).
+  def artwork_payload(artwork)
+    { id: artwork.id, photo_url: url_for(artwork.photo) }
+  end
+
+  # A gallery entry: the finished reference (canvas + steps, enough to render
+  # the cover) plus the child's photographed Artwork(s), scoped to the active
+  # Profile by the query above.
+  def gallery_entry(drawing)
+    drawing.as_walkthrough.merge(
+      artworks: drawing.artworks.map { |artwork| artwork_payload(artwork) }
+    )
   end
 end

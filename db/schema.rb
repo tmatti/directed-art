@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_28_200002) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_29_004031) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -18,6 +18,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_28_200002) do
     t.integer "age_band", null: false
     t.integer "canvas_height", default: 600, null: false
     t.integer "canvas_width", default: 600, null: false
+    t.datetime "confirmed_at"
     t.datetime "created_at", null: false
     t.integer "current_step", default: 0, null: false
     t.bigint "profile_id", null: false

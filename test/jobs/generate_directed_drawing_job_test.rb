@@ -103,4 +103,50 @@ class GenerateDirectedDrawingJobTest < ActiveJob::TestCase
       assert_not completed.submit_for_generation
     end
   end
+
+  # --- Regeneration at the confirmation gate (ADR-0002) ---
+
+  # A ready Plan whose unconfirmed candidate the child can preview, accept, or
+  # ask to redraw.
+  def ready_plan
+    plan = profiles(:mia).drawing_plans.create!(
+      age_band: profiles(:mia).age_band,
+      subject: "a dragon", action: "flying", mood: "silly", background: "the sky",
+      status: :generating
+    )
+    GenerateDirectedDrawingJob.perform_now(plan)
+    plan.reload
+  end
+
+  test "submit_for_generation replaces an unconfirmed candidate and re-enqueues" do
+    plan = ready_plan
+    old_candidate = plan.directed_drawing
+    assert_not old_candidate.confirmed?
+
+    # One candidate discarded, one regenerated: the count nets out.
+    assert_no_difference -> { DirectedDrawing.count } do
+      assert_enqueued_with(job: GenerateDirectedDrawingJob) do
+        assert plan.submit_for_generation
+      end
+      assert plan.reload.generating?
+      perform_enqueued_jobs
+    end
+
+    plan.reload
+    assert plan.ready?
+    assert_not_equal old_candidate.id, plan.directed_drawing_id
+    assert_nil DirectedDrawing.find_by(id: old_candidate.id),
+      "the previous unconfirmed candidate is replaced"
+  end
+
+  test "submit_for_generation refuses to replace a confirmed drawing" do
+    plan = ready_plan
+    plan.directed_drawing.confirm!
+
+    assert_no_enqueued_jobs do
+      assert_not plan.submit_for_generation
+    end
+    assert plan.reload.ready?
+    assert plan.directed_drawing.confirmed?
+  end
 end

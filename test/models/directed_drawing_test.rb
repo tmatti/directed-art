@@ -89,4 +89,43 @@ class DirectedDrawingTest < ActiveSupport::TestCase
       profiles(:mia).destroy
     end
   end
+
+  # --- Confirmation gate (ADR-0002) ---
+
+  test "a freshly generated drawing is an unconfirmed candidate" do
+    drawing = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+
+    assert_not drawing.confirmed?
+    assert_nil drawing.confirmed_at
+  end
+
+  test "confirm! marks the drawing confirmed with a timestamp" do
+    drawing = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+
+    freeze_time do
+      drawing.confirm!
+      assert drawing.confirmed?
+      assert_equal Time.current, drawing.confirmed_at
+    end
+  end
+
+  test "confirm! is idempotent and does not move the confirmation time" do
+    drawing = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+    drawing.confirm!
+    first = drawing.confirmed_at
+
+    travel 1.minute do
+      drawing.confirm!
+      assert_equal first, drawing.reload.confirmed_at
+    end
+  end
+
+  test "the confirmed scope returns only confirmed drawings" do
+    candidate = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+    confirmed = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+    confirmed.confirm!
+
+    assert_includes DirectedDrawing.confirmed, confirmed
+    assert_not_includes DirectedDrawing.confirmed, candidate
+  end
 end

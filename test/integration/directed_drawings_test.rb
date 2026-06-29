@@ -7,7 +7,13 @@ class DirectedDrawingsTest < ActionDispatch::IntegrationTest
     sign_in users(:one)
     @session = users(:one).sessions.last
     @session.update!(active_profile: profiles(:mia))
-    @drawing = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+    @drawing = confirmed_drawing
+  end
+
+  # Only a confirmed Directed Drawing is a steppable Walkthrough (ADR-0002), so
+  # the Walkthrough surfaces are exercised with confirmed drawings.
+  def confirmed_drawing(profile: profiles(:mia))
+    DirectedDrawing.create_from_plan!(profile: profile, plan: plan).tap(&:confirm!)
   end
 
   def plan
@@ -48,23 +54,45 @@ class DirectedDrawingsTest < ActionDispatch::IntegrationTest
   # --- Profile / account scoping (ADR-0004) ---
 
   test "cannot view a drawing belonging to another profile in the same account" do
-    leos = DirectedDrawing.create_from_plan!(profile: profiles(:leo), plan: plan)
+    leos = confirmed_drawing(profile: profiles(:leo))
     get directed_drawing_path(leos)
     assert_response :not_found
   end
 
   test "cannot view another account's drawing" do
-    others = DirectedDrawing.create_from_plan!(profile: profiles(:other_kid), plan: plan)
+    others = confirmed_drawing(profile: profiles(:other_kid))
     get directed_drawing_path(others)
     assert_response :not_found
   end
 
   test "index only lists the active profile's drawings" do
-    leos = DirectedDrawing.create_from_plan!(profile: profiles(:leo), plan: plan)
+    leos = confirmed_drawing(profile: profiles(:leo))
     get directed_drawings_path
     ids = inertia.props[:drawings].map { |d| d[:id] }
     assert_includes ids, @drawing.id
     assert_not_includes ids, leos.id
+  end
+
+  # --- Only confirmed drawings are steppable (ADR-0002) ---
+
+  test "an unconfirmed candidate is not a steppable Walkthrough" do
+    candidate = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+    get directed_drawing_path(candidate)
+    assert_response :not_found
+  end
+
+  test "an unconfirmed candidate is not listed in the index" do
+    candidate = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+    get directed_drawings_path
+    ids = inertia.props[:drawings].map { |d| d[:id] }
+    assert_not_includes ids, candidate.id
+  end
+
+  test "current_step cannot be persisted for an unconfirmed candidate" do
+    candidate = DirectedDrawing.create_from_plan!(profile: profiles(:mia), plan: plan)
+    patch directed_drawing_current_step_path(candidate), params: { current_step: 1 }
+    assert_response :not_found
+    assert_equal 0, candidate.reload.current_step
   end
 
   # --- Resumable current_step ---

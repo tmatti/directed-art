@@ -1,24 +1,26 @@
 import { Head, router } from "@inertiajs/react"
-import { ChevronLeft, ChevronRight, Volume2 } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { Camera, ChevronLeft, ChevronRight, Volume2 } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import DrawingCanvas from "@/components/drawing-canvas"
 import { Button } from "@/components/ui/button"
 import AppLayout from "@/layouts/app-layout"
-import { directedDrawingCurrentStep } from "@/routes"
+import { directedDrawingArtworks, directedDrawingCurrentStep } from "@/routes"
 import directedDrawings from "@/routes/DirectedDrawingsController"
-import type { BreadcrumbItem, DirectedDrawing, Profile } from "@/types"
+import type { Artwork, BreadcrumbItem, DirectedDrawing, Profile } from "@/types"
 
 interface ShowProps {
   drawing: DirectedDrawing
   profile: Pick<Profile, "id" | "name">
+  artworks: Artwork[]
 }
 
-export default function Show({ drawing, profile }: ShowProps) {
+export default function Show({ drawing, profile, artworks }: ShowProps) {
   const lastPage = drawing.steps.length + 1
   const [page, setPage] = useState(() =>
     Math.min(Math.max(drawing.current_step, 0), lastPage),
   )
+  const fileInput = useRef<HTMLInputElement>(null)
 
   const breadcrumbs: BreadcrumbItem[] = [
     { title: "Drawings", href: directedDrawings.index().url },
@@ -55,6 +57,20 @@ export default function Show({ drawing, profile }: ShowProps) {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [go, page])
+
+  // Upload the photographed real drawing as an Artwork on R2 (ADR-0009). The
+  // upload is optional; submitting reloads the show props with the new artwork.
+  const uploadArtwork = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const file = fileInput.current?.files?.[0]
+    if (!file) return
+    const data = new FormData()
+    data.append("photo", file)
+    router.post(directedDrawingArtworks(drawing.id).url, data, {
+      preserveScroll: true,
+    })
+    if (fileInput.current) fileInput.current.value = ""
+  }
 
   const isCover = page === 0
   const isFinish = page > drawing.steps.length
@@ -108,6 +124,56 @@ export default function Show({ drawing, profile }: ShowProps) {
           page={page}
           className="w-full max-w-[560px] rounded-xl border bg-white shadow-sm"
         />
+
+        {isFinish && (
+          <div className="flex w-full max-w-[560px] flex-col gap-4">
+            <form onSubmit={uploadArtwork} className="flex flex-col gap-2">
+              <label
+                htmlFor="artwork-photo"
+                className="text-muted-foreground text-sm font-medium"
+              >
+                Snap a photo of your drawing (optional)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="artwork-photo"
+                  ref={fileInput}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="text-sm"
+                />
+                <Button type="submit" size="sm">
+                  <Camera /> Save photo
+                </Button>
+              </div>
+            </form>
+
+            {artworks.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-muted-foreground text-sm font-medium">
+                  Your drawings
+                </p>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {artworks.map((artwork) => (
+                    <a
+                      key={artwork.id}
+                      href={artwork.photo_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={artwork.photo_url}
+                        alt="Your drawing"
+                        className="aspect-square w-full rounded-lg border bg-white object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <Button

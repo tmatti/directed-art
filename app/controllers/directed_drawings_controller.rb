@@ -19,7 +19,13 @@ class DirectedDrawingsController < InertiaController
 
     render inertia: {
       drawing: drawing.as_walkthrough,
-      profile: Current.active_profile.as_json(only: %i[id name])
+      profile: Current.active_profile.as_json(only: %i[id name]),
+      # The child's photographed real drawings, shown on the finish page so they
+      # can admire and re-shoot their work. URLs are signed and served via
+      # Active Storage (R2 in production).
+      artworks: drawing.artworks.map do |artwork|
+        { id: artwork.id, photo_url: url_for(artwork.photo) }
+      end
     }
   end
 end

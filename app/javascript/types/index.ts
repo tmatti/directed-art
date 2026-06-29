@@ -113,3 +113,11 @@ export interface DirectedDrawing {
   canvas: Canvas
   steps: DrawingStep[]
 }
+
+// A photo of the child's real paper drawing, captured at the finish page and
+// served via Active Storage (R2 in production). A drawing can collect many
+// because a child may repeat the steps (ADR-0009).
+export interface Artwork {
+  id: number
+  photo_url: string
+}

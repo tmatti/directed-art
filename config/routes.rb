@@ -36,6 +36,10 @@ Rails.application.routes.draw do
     # The resumable Walkthrough position, persisted so a child returns to where
     # they left off.
     resource :current_step, only: [ :update ], module: :directed_drawings
+
+    # Optional photo of the child's real paper drawing, captured at the finish
+    # page and stored on R2 (ADR-0009). Many because a drawing can be repeated.
+    resources :artworks, only: [ :create ], module: :directed_drawings
   end
 
   namespace :settings do

@@ -52,7 +52,6 @@ Rails.application.routes.draw do
     resource :password, only: [ :show, :update ]
     resource :email, only: [ :show, :update ]
     resources :sessions, only: [ :index ]
-    inertia :appearance
   end
 
   root "home#index"

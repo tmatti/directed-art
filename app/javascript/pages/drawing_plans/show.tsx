@@ -7,10 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import AppLayout from "@/layouts/app-layout"
-import { ageBandLabel } from "@/lib/age-bands"
 import drawingPlansGenerations from "@/routes/DrawingPlans/GenerationsController"
 import drawingPlans from "@/routes/DrawingPlansController"
-import type { AgeBand } from "@/types"
 
 interface ChatAnswer {
   key: string
@@ -34,7 +32,6 @@ interface PlanSummary {
   action: string
   mood: string
   background: string
-  age_band: AgeBand
 }
 
 interface PlanChat {
@@ -186,17 +183,61 @@ function Question({
   )
 }
 
-// The assembled Drawing Plan, shown once every slot is filled. Complexity is
-// derived from the Profile's Age Band (ADR-0003), shown here, never asked.
-function Summary({ planId, plan }: { planId: number; plan: PlanSummary }) {
-  const rows: [string, string][] = [
-    ["Subject", plan.subject],
-    ["Action", plan.action],
-    ["Mood", plan.mood],
-    ["Background", plan.background],
-    ["Level", ageBandLabel(plan.age_band)],
-  ]
+// The Plan attributes composed into one friendly sentence a pre-reader can
+// hear read aloud, e.g. "A happy dragon, flying, over a castle!" The mood
+// slips in front of the subject's noun, the background gets a preposition if
+// it needs one, and blank or "nothing" parts are skipped.
+const ARTICLES = ["a", "an", "the"]
+const PREPOSITIONS = [
+  "in",
+  "on",
+  "at",
+  "by",
+  "over",
+  "under",
+  "near",
+  "behind",
+  "above",
+  "below",
+  "beside",
+  "inside",
+  "around",
+]
 
+function moodySubject(subject: string, mood: string): string {
+  if (!mood) return subject
+  const [first, ...rest] = subject.split(" ")
+  if (rest.length > 0 && ARTICLES.includes(first.toLowerCase())) {
+    const article =
+      first.toLowerCase() === "the"
+        ? "the"
+        : /^[aeiou]/i.test(mood)
+          ? "an"
+          : "a"
+    return [article, mood, ...rest].join(" ")
+  }
+  return `${mood} ${subject}`
+}
+
+function setting(background: string): string {
+  if (!background || background === "no background") return ""
+  const first = background.split(" ")[0].toLowerCase()
+  return PREPOSITIONS.includes(first) ? background : `in ${background}`
+}
+
+function planSentence(plan: PlanSummary): string {
+  const parts = [
+    moodySubject(plan.subject.trim(), plan.mood.trim()),
+    plan.action.trim(),
+    setting(plan.background.trim()),
+  ].filter(Boolean)
+  const sentence = parts.join(", ")
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1) + "!"
+}
+
+// The assembled Drawing Plan, shown once every slot is filled, as a single
+// friendly sentence rather than a table of attributes.
+function Summary({ planId, plan }: { planId: number; plan: PlanSummary }) {
   return (
     <Card className="border-primary/30">
       <CardContent className="flex flex-col gap-4">
@@ -205,14 +246,7 @@ function Summary({ planId, plan }: { planId: number; plan: PlanSummary }) {
           ready!
         </div>
 
-        <dl className="grid grid-cols-[7rem_1fr] gap-x-4 gap-y-2 text-sm">
-          {rows.map(([label, value]) => (
-            <div key={label} className="contents">
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd className="font-medium">{value}</dd>
-            </div>
-          ))}
-        </dl>
+        <p className="font-display text-2xl">{planSentence(plan)}</p>
 
         <div className="flex flex-col gap-2">
           <Button

@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import DrawingCanvas from "@/components/drawing-canvas"
 import { Button } from "@/components/ui/button"
 import AppLayout from "@/layouts/app-layout"
+import { cn } from "@/lib/utils"
 import {
   directedDrawingArtworks,
   directedDrawingCurrentStep,
@@ -101,13 +102,33 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
 
       <div className="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col items-center gap-5 p-4 pt-8">
         <div className="min-h-20 text-center">
-          <p className="text-muted-foreground text-xs font-medium tracking-widest uppercase">
-            {isCover
-              ? "Cover"
-              : isFinish
-                ? "All done!"
-                : `Step ${page} of ${drawing.steps.length}`}
-          </p>
+          {/* One dot per Walkthrough page (cover + Steps + finish); the words
+              live in the aria-label so pre-readers just see the dots. */}
+          <div
+            role="img"
+            aria-label={
+              isCover
+                ? "Cover"
+                : isFinish
+                  ? "All done!"
+                  : `Step ${page} of ${drawing.steps.length}`
+            }
+            className="flex items-center justify-center gap-2 py-1"
+          >
+            {Array.from({ length: lastPage + 1 }, (_, index) => (
+              <span
+                key={index}
+                className={cn(
+                  "size-2.5 rounded-full transition-all duration-300",
+                  index === page
+                    ? "bg-primary scale-150"
+                    : index < page
+                      ? "bg-primary/40"
+                      : "bg-border",
+                )}
+              />
+            ))}
+          </div>
 
           {isCover && (
             <>
@@ -202,16 +223,23 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
           </div>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-8">
           <Button
             variant="outline"
             onClick={() => go(page - 1)}
             disabled={page <= 0}
+            aria-label="Previous page"
+            className="size-16 rounded-full disabled:opacity-40 [&_svg:not([class*='size-'])]:size-8"
           >
-            <ChevronLeft /> Prev
+            <ChevronLeft />
           </Button>
-          <Button onClick={() => go(page + 1)} disabled={page >= lastPage}>
-            Next <ChevronRight />
+          <Button
+            onClick={() => go(page + 1)}
+            disabled={page >= lastPage}
+            aria-label="Next page"
+            className="size-16 rounded-full shadow-md disabled:opacity-40 disabled:shadow-none [&_svg:not([class*='size-'])]:size-8"
+          >
+            <ChevronRight />
           </Button>
         </div>
       </div>

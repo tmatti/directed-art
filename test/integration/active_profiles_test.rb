@@ -20,7 +20,7 @@ class ActiveProfilesTest < ActionDispatch::IntegrationTest
   test "the active profile persists across requests in the same session" do
     patch active_profile_path, params: { profile_id: profiles(:leo).id }
     get dashboard_path
-    assert_response :success
+    assert_redirected_to directed_drawings_path
     assert_equal profiles(:leo).id, users(:one).sessions.last.reload.active_profile_id
   end
 

@@ -1,5 +1,5 @@
 import { Form, Head, Link } from "@inertiajs/react"
-import { Camera, Palette, Plus } from "lucide-react"
+import { Camera, Palette, Play, Plus, Repeat } from "lucide-react"
 
 import DrawingCanvas from "@/components/drawing-canvas"
 import Heading from "@/components/heading"
@@ -32,11 +32,44 @@ interface GalleryEntry extends DirectedDrawing {
   artworks: Artwork[]
 }
 
-function statusLabel(drawing: GalleryEntry): string {
+// A glanceable status for pre-readers: an icon plus a short word, with a tiny
+// progress bar (instead of a "Step X of Y" sentence) when partway through.
+function DrawingStatus({ drawing }: { drawing: GalleryEntry }) {
   const lastStep = drawing.steps.length
-  if (drawing.current_step === 0) return "Start drawing"
-  if (drawing.current_step > lastStep) return "Draw again"
-  return `Resume — Step ${drawing.current_step} of ${lastStep}`
+
+  if (drawing.current_step === 0) {
+    return (
+      <span className="text-primary inline-flex items-center gap-1.5 font-semibold">
+        <Play className="size-4" /> Start
+      </span>
+    )
+  }
+
+  if (drawing.current_step > lastStep) {
+    return (
+      <span className="inline-flex items-center gap-1.5 font-semibold">
+        <Repeat className="size-4" /> Draw again
+      </span>
+    )
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2 font-semibold">
+      Keep going
+      <span
+        role="img"
+        aria-label={`Step ${drawing.current_step} of ${lastStep}`}
+        className="bg-muted h-1.5 w-16 overflow-hidden rounded-full"
+      >
+        <span
+          className="bg-primary block h-full rounded-full"
+          style={{
+            width: `${Math.round((drawing.current_step / lastStep) * 100)}%`,
+          }}
+        />
+      </span>
+    </span>
+  )
 }
 
 export default function Index({ drawings }: { drawings: GalleryEntry[] }) {
@@ -46,10 +79,7 @@ export default function Index({ drawings }: { drawings: GalleryEntry[] }) {
 
       <div className="flex h-full flex-1 flex-col gap-6 p-4">
         <div className="flex items-center justify-between gap-4">
-          <Heading
-            title="Your drawings"
-            description="Look back at your drawings or draw them again."
-          />
+          <Heading title="Your drawings" />
           <NewDrawingButton />
         </div>
 
@@ -82,7 +112,9 @@ export default function Index({ drawings }: { drawings: GalleryEntry[] }) {
                     <CardTitle className="flex items-center gap-2">
                       <Palette className="size-4" /> {drawing.title}
                     </CardTitle>
-                    <CardDescription>{statusLabel(drawing)}</CardDescription>
+                    <CardDescription>
+                      <DrawingStatus drawing={drawing} />
+                    </CardDescription>
                   </CardHeader>
                   {drawing.artworks.length > 0 && (
                     <CardContent>

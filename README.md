@@ -1,66 +1,49 @@
-# Inertia Rails React Starter Kit
+# Directed Art
 
-A modern full-stack starter application with Rails backend and React frontend using Inertia.js based on the [Laravel Starter Kit](https://github.com/laravel/react-starter-kit).
+A web app that generates and walks children (ages 4–10) through **directed
+drawings** — step-by-step guided drawings the child makes on physical paper. An
+AI agent helps the child plan a drawing through conversation, then the app
+renders the plan as a page-turning storybook of steps.
 
-## Features
+## Stack
 
-- [Inertia Rails](https://inertia-rails.dev) & [Vite Rails](https://vite-ruby.netlify.app) setup
-- [React](https://react.dev) frontend with TypeScript & [shadcn/ui](https://ui.shadcn.com) component library
-- User authentication system (based on [Authentication Zero](https://github.com/lazaronixon/authentication-zero))
-- [Kamal](https://kamal-deploy.org/) for deployment
-- Optional SSR support
-
-See also:
-- [Svelte Starter Kit](https://github.com/inertia-rails/svelte-starter-kit) for Inertia Rails with Svelte
-- [Vue Starter Kit](https://github.com/inertia-rails/vue-starter-kit) for Inertia Rails with Vue
-
-<a href="https://evilmartians.com/?utm_source=inertia-rails-react-starter-kit&utm_campaign=project_page">
-<img src="https://evilmartians.com/badges/sponsored-by-evil-martians.svg" alt="Built by Evil Martians" width="236" height="54">
-</a>
+- [Rails](https://rubyonrails.org) backend with [Inertia.js](https://inertia-rails.dev)
+- [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org) frontend
+- [Vite](https://vitejs.dev) via [rails_vite](https://github.com/skryukov/rails_vite)
+- [shadcn/ui](https://ui.shadcn.com) components on [Tailwind CSS](https://tailwindcss.com)
+- [RubyLLM](https://github.com/Shopify/ruby_llm) as the LLM seam behind drawing generation
+- PostgreSQL, Active Storage (Cloudflare R2 in production), Solid Queue/Cache/Cable
+- [Kamal](https://kamal-deploy.org) for deployment
 
 ## Setup
 
-1. Clone this repository
-2. Setup dependencies & run the server:
+1. Install dependencies:
    ```bash
    bin/setup
    ```
-3. Open http://localhost:3000
-
-## Enabling SSR
-
-This starter kit ships SSR-ready but turned off. The Puma plugin
-([`plugin :inertia_ssr`](config/puma.rb)) manages the Node.js renderer
-in-process — no separate accessory required.
-
-To turn SSR on, flip two switches:
-
-1. Set `config.ssr_enabled = true` in [`config/initializers/inertia_rails.rb`](config/initializers/inertia_rails.rb).
-2. Build the image with `SSR_ENABLED=true` so the SSR bundle ships
-   alongside the app. Two ways:
-
-   **With Kamal** — add to [`config/deploy.yml`](config/deploy.yml):
-
-   ```yml
-   builder:
-     args:
-       SSR_ENABLED: true
-   ```
-
-   **By hand** — pass the build arg directly:
-
+2. Copy `.env.example` to `.env` and adjust as needed (e.g. LLM provider keys).
+3. Start the server:
    ```bash
-   docker build --build-arg SSR_ENABLED=true -t react_starter_kit .
+   bin/dev
    ```
+4. Open http://localhost:3000
 
-That's it. Puma boots the SSR process automatically when
-`ssr_enabled` is true, and Inertia falls back to client-side
-rendering if it ever fails (see `config.on_ssr_error`).
+## How it works
 
-In development, flipping `ssr_enabled` is enough — Vite serves SSR
-via its own dev endpoint with HMR. The Docker build arg only matters
-for production images.
+1. **Pick a profile** — a session starts by choosing which child is drawing.
+2. **Plan a drawing** — a guided chat assembles a Drawing Plan (subject, mood,
+   background) for the active profile's age band.
+3. **Generate** — the plan is sent to an LLM which returns a step-by-step
+   drawing as structured primitives, then a confirmation gate previews the
+   finished picture.
+4. **Walkthrough** — a page-turning book: a cover, one page per step with
+   narration, and a finish page.
+5. **Capture** — photograph the child's real paper drawing into their gallery.
+   A drawing can be repeated to collect many artworks.
+
+See [`CONTEXT.md`](./CONTEXT.md) for the ubiquitous language and
+[`docs/adr/`](./docs/adr/) for architectural decisions.
 
 ## License
 
-The project is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+Available as open source under the terms of the [MIT License](./LICENSE).

@@ -1,7 +1,8 @@
 import { Form, Head, Link, usePage } from "@inertiajs/react"
-import { Pencil, Plus, Trash2, Users } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 
 import Heading from "@/components/heading"
+import ProfileAvatar from "@/components/profile-avatar"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -59,7 +60,7 @@ export default function Index({ profiles: list }: { profiles: Profile[] }) {
               <Card key={child.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="size-4" /> {child.name}
+                    <ProfileAvatar profile={child} size="sm" /> {child.name}
                     {auth.active_profile?.id === child.id && (
                       <span className="text-primary text-xs font-medium">
                         Drawing now

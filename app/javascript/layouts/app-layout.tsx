@@ -3,6 +3,7 @@ import { LogOut, Settings, Smile, Users } from "lucide-react"
 import type { ReactNode } from "react"
 
 import AppLogo from "@/components/app-logo"
+import ProfileAvatar from "@/components/profile-avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -47,7 +48,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="ml-auto flex items-center gap-1">
           <Button asChild variant="secondary" className="rounded-full">
             <Link href={activeProfile()} prefetch>
-              <Smile />
+              {auth.active_profile ? (
+                <ProfileAvatar
+                  profile={auth.active_profile}
+                  size="sm"
+                  className="-ml-2"
+                />
+              ) : (
+                <Smile />
+              )}
               {auth.active_profile?.name ?? "Who's drawing?"}
             </Link>
           </Button>

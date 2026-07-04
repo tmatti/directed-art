@@ -132,7 +132,7 @@ function Confirm({
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
-            size="lg"
+            size="xl"
             onClick={() =>
               router.post(directedDrawingConfirmation(drawing.id).url)
             }
@@ -140,7 +140,7 @@ function Confirm({
             <Heart /> I love it!
           </Button>
           <Button
-            size="lg"
+            size="xl"
             variant="outline"
             onClick={() =>
               router.post(drawingPlansGenerations.create(planId).url)
@@ -167,7 +167,7 @@ function Failed({ planId }: { planId: number }) {
           description="Something went wrong while drawing your picture. Let's give it another try!"
         />
         <Button
-          size="lg"
+          size="xl"
           onClick={() =>
             router.post(drawingPlansGenerations.create(planId).url)
           }

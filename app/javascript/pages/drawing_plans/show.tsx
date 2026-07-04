@@ -127,12 +127,7 @@ function Question({
                   curated so the server skips the classifier. */}
               <input type="hidden" name="answer" value={suggestion} />
               <input type="hidden" name="from_chip" value="1" />
-              <Button
-                type="submit"
-                variant="outline"
-                size="lg"
-                className="rounded-full"
-              >
+              <Button type="submit" variant="outline" size="xl">
                 {suggestion}
               </Button>
             </Form>
@@ -158,7 +153,7 @@ function Question({
                   />
                   <Button
                     type="submit"
-                    size="icon-lg"
+                    size="icon-xl"
                     disabled={processing}
                     aria-label="Send"
                   >
@@ -224,7 +219,7 @@ function Summary({ planId, plan }: { planId: number; plan: PlanSummary }) {
             onClick={() =>
               router.post(drawingPlansGenerations.create(planId).url)
             }
-            size="lg"
+            size="xl"
           >
             <Sparkles /> Make my drawing!
           </Button>

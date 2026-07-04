@@ -217,7 +217,7 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
               </div>
             )}
 
-            <Button onClick={repeatDrawing} size="lg" className="w-full">
+            <Button onClick={repeatDrawing} size="xl" className="w-full">
               <Repeat /> Draw again
             </Button>
           </div>

@@ -19,7 +19,7 @@ import type { Artwork, DirectedDrawing } from "@/types"
 function NewDrawingButton() {
   return (
     <Form action={drawingPlans.create()}>
-      <Button type="submit">
+      <Button type="submit" size="xl">
         <Plus /> New drawing
       </Button>
     </Form>

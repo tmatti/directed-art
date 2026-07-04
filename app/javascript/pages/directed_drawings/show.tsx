@@ -111,14 +111,18 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
 
           {isCover && (
             <>
-              <h1 className="mt-1 text-2xl font-bold">{drawing.title}</h1>
+              <h1 className="font-display mt-1 text-2xl font-bold">
+                {drawing.title}
+              </h1>
               <p className="mt-1 text-lg">Here&apos;s what we&apos;ll draw!</p>
             </>
           )}
 
           {isFinish && (
             <>
-              <h1 className="mt-1 text-2xl font-bold">You did it! 🎉</h1>
+              <h1 className="font-display mt-1 text-2xl font-bold">
+                You did it! 🎉
+              </h1>
               <p className="mt-1 text-lg">
                 Great drawing, {profile.name}! Color it in however you like.
               </p>

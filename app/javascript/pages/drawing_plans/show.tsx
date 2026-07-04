@@ -10,7 +10,7 @@ import AppLayout from "@/layouts/app-layout"
 import { ageBandLabel } from "@/lib/age-bands"
 import drawingPlansGenerations from "@/routes/DrawingPlans/GenerationsController"
 import drawingPlans from "@/routes/DrawingPlansController"
-import type { AgeBand, BreadcrumbItem } from "@/types"
+import type { AgeBand } from "@/types"
 
 interface ChatAnswer {
   key: string
@@ -46,11 +46,9 @@ interface PlanChat {
   redirect: RedirectNotice | null
 }
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: "New drawing", href: "" }]
-
 export default function Show({ plan }: { plan: PlanChat }) {
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout>
       <Head title="Let's make a drawing" />
 
       <div className="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col gap-6 p-4 pt-8">

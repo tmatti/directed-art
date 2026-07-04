@@ -14,7 +14,7 @@ import {
 import AppLayout from "@/layouts/app-layout"
 import directedDrawings from "@/routes/DirectedDrawingsController"
 import drawingPlans from "@/routes/DrawingPlansController"
-import type { Artwork, BreadcrumbItem, DirectedDrawing } from "@/types"
+import type { Artwork, DirectedDrawing } from "@/types"
 
 function NewDrawingButton() {
   return (
@@ -39,13 +39,9 @@ function statusLabel(drawing: GalleryEntry): string {
   return `Resume — Step ${drawing.current_step} of ${lastStep}`
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: "Drawings", href: directedDrawings.index().url },
-]
-
 export default function Index({ drawings }: { drawings: GalleryEntry[] }) {
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout>
       <Head title="Drawings" />
 
       <div className="flex h-full flex-1 flex-col gap-6 p-4">

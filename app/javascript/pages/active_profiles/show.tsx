@@ -9,19 +9,13 @@ import { ageBandLabel } from "@/lib/age-bands"
 import { cn } from "@/lib/utils"
 import { newProfile } from "@/routes"
 import activeProfile from "@/routes/ActiveProfilesController"
-import profiles from "@/routes/ProfilesController"
-import type { BreadcrumbItem, Profile } from "@/types"
-
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: "Profiles", href: profiles.index().url },
-  { title: "Who's drawing?", href: activeProfile.show().url },
-]
+import type { Profile } from "@/types"
 
 export default function Show({ profiles: list }: { profiles: Profile[] }) {
   const { auth } = usePage().props
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout>
       <Head title="Who's drawing today?" />
 
       <div className="flex h-full flex-1 flex-col items-center gap-8 p-4 pt-10">

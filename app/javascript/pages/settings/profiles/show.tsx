@@ -9,21 +9,13 @@ import { Input } from "@/components/ui/input"
 import AppLayout from "@/layouts/app-layout"
 import SettingsLayout from "@/layouts/settings/layout"
 import { settingsProfiles } from "@/routes"
-import type { BreadcrumbItem } from "@/types"
-
-const breadcrumbs: BreadcrumbItem[] = [
-  {
-    title: "Profile settings",
-    href: settingsProfiles.show().url,
-  },
-]
 
 export default function Profile() {
   const { auth } = usePage().props
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title={breadcrumbs[breadcrumbs.length - 1].title} />
+    <AppLayout>
+      <Head title="Profile settings" />
 
       <SettingsLayout>
         <div className="space-y-6">

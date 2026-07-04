@@ -17,7 +17,7 @@ import AppLayout from "@/layouts/app-layout"
 import { directedDrawingConfirmation } from "@/routes"
 import directedDrawings from "@/routes/DirectedDrawingsController"
 import drawingPlansGenerations from "@/routes/DrawingPlans/GenerationsController"
-import type { BreadcrumbItem, DirectedDrawing } from "@/types"
+import type { DirectedDrawing } from "@/types"
 
 type GenerationStatus =
   | "building"
@@ -38,8 +38,6 @@ interface Generation {
 // How often the wait screen asks the status endpoint whether the drawing is
 // ready (ADR-0009). A one-shot generation, so simple polling beats websockets.
 const POLL_INTERVAL_MS = 1500
-
-const breadcrumbs: BreadcrumbItem[] = [{ title: "New drawing", href: "" }]
 
 export default function Show({ generation }: { generation: Generation }) {
   const pending =
@@ -73,7 +71,7 @@ export default function Show({ generation }: { generation: Generation }) {
   }, [generation.status, generation.drawing, generation.directed_drawing_id])
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout>
       <Head title="Drawing your picture…" />
 
       <div className="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col items-center justify-center gap-6 p-4">

@@ -16,8 +16,7 @@ import {
   directedDrawingCurrentStep,
   directedDrawingRepeat,
 } from "@/routes"
-import directedDrawings from "@/routes/DirectedDrawingsController"
-import type { Artwork, BreadcrumbItem, DirectedDrawing, Profile } from "@/types"
+import type { Artwork, DirectedDrawing, Profile } from "@/types"
 
 interface ShowProps {
   drawing: DirectedDrawing
@@ -31,11 +30,6 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
     Math.min(Math.max(drawing.current_step, 0), lastPage),
   )
   const fileInput = useRef<HTMLInputElement>(null)
-
-  const breadcrumbs: BreadcrumbItem[] = [
-    { title: "Drawings", href: directedDrawings.index().url },
-    { title: drawing.title, href: directedDrawings.show(drawing.id).url },
-  ]
 
   // Persist the resumable position so the child returns to where they left off.
   const persist = useCallback(
@@ -102,7 +96,7 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
   const step = !isCover && !isFinish ? drawing.steps[page - 1] : null
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout>
       <Head title={drawing.title} />
 
       <div className="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col items-center gap-5 p-4 pt-8">

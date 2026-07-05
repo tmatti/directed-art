@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=\"$(mise bin-paths | tr '\\n' ':')$PATH\" && bin/dev"
+      ],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

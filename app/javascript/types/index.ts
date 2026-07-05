@@ -6,11 +6,6 @@ export interface Auth {
   active_profile: Profile | null
 }
 
-export interface BreadcrumbItem {
-  title: string
-  href: string
-}
-
 export interface NavItem {
   title: string
   href: string

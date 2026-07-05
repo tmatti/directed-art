@@ -13,21 +13,13 @@ import { Input } from "@/components/ui/input"
 import AppLayout from "@/layouts/app-layout"
 import SettingsLayout from "@/layouts/settings/layout"
 import { identityEmailVerifications, settingsEmails } from "@/routes"
-import type { BreadcrumbItem } from "@/types"
-
-const breadcrumbs: BreadcrumbItem[] = [
-  {
-    title: "Email settings",
-    href: settingsEmails.show().url,
-  },
-]
 
 export default function Email() {
   const { auth } = usePage().props
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title={breadcrumbs[breadcrumbs.length - 1].title} />
+    <AppLayout>
+      <Head title="Email settings" />
 
       <SettingsLayout>
         <div className="space-y-6">

@@ -1,7 +1,8 @@
 import { Form, Head, Link, usePage } from "@inertiajs/react"
-import { Pencil, Plus, Trash2, Users } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 
 import Heading from "@/components/heading"
+import ProfileAvatar from "@/components/profile-avatar"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -15,20 +16,13 @@ import AppLayout from "@/layouts/app-layout"
 import { ageBandLabel } from "@/lib/age-bands"
 import { activeProfile, editProfile, newProfile } from "@/routes"
 import profiles from "@/routes/ProfilesController"
-import type { BreadcrumbItem, Profile } from "@/types"
-
-const breadcrumbs: BreadcrumbItem[] = [
-  {
-    title: "Profiles",
-    href: profiles.index().url,
-  },
-]
+import type { Profile } from "@/types"
 
 export default function Index({ profiles: list }: { profiles: Profile[] }) {
   const { auth } = usePage().props
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout>
       <Head title="Profiles" />
 
       <div className="flex h-full flex-1 flex-col gap-6 p-4">
@@ -66,7 +60,7 @@ export default function Index({ profiles: list }: { profiles: Profile[] }) {
               <Card key={child.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="size-4" /> {child.name}
+                    <ProfileAvatar profile={child} size="sm" /> {child.name}
                     {auth.active_profile?.id === child.id && (
                       <span className="text-primary text-xs font-medium">
                         Drawing now

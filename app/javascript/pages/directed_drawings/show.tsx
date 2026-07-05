@@ -11,13 +11,13 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import DrawingCanvas from "@/components/drawing-canvas"
 import { Button } from "@/components/ui/button"
 import AppLayout from "@/layouts/app-layout"
+import { cn } from "@/lib/utils"
 import {
   directedDrawingArtworks,
   directedDrawingCurrentStep,
   directedDrawingRepeat,
 } from "@/routes"
-import directedDrawings from "@/routes/DirectedDrawingsController"
-import type { Artwork, BreadcrumbItem, DirectedDrawing, Profile } from "@/types"
+import type { Artwork, DirectedDrawing, Profile } from "@/types"
 
 interface ShowProps {
   drawing: DirectedDrawing
@@ -31,11 +31,6 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
     Math.min(Math.max(drawing.current_step, 0), lastPage),
   )
   const fileInput = useRef<HTMLInputElement>(null)
-
-  const breadcrumbs: BreadcrumbItem[] = [
-    { title: "Drawings", href: directedDrawings.index().url },
-    { title: drawing.title, href: directedDrawings.show(drawing.id).url },
-  ]
 
   // Persist the resumable position so the child returns to where they left off.
   const persist = useCallback(
@@ -102,29 +97,53 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
   const step = !isCover && !isFinish ? drawing.steps[page - 1] : null
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout>
       <Head title={drawing.title} />
 
       <div className="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col items-center gap-5 p-4 pt-8">
         <div className="min-h-20 text-center">
-          <p className="text-muted-foreground text-xs font-medium tracking-widest uppercase">
-            {isCover
-              ? "Cover"
-              : isFinish
-                ? "All done!"
-                : `Step ${page} of ${drawing.steps.length}`}
-          </p>
+          {/* One dot per Walkthrough page (cover + Steps + finish); the words
+              live in the aria-label so pre-readers just see the dots. */}
+          <div
+            role="img"
+            aria-label={
+              isCover
+                ? "Cover"
+                : isFinish
+                  ? "All done!"
+                  : `Step ${page} of ${drawing.steps.length}`
+            }
+            className="flex items-center justify-center gap-2 py-1"
+          >
+            {Array.from({ length: lastPage + 1 }, (_, index) => (
+              <span
+                key={index}
+                className={cn(
+                  "size-2.5 rounded-full transition-all duration-300",
+                  index === page
+                    ? "bg-primary scale-150"
+                    : index < page
+                      ? "bg-primary/40"
+                      : "bg-border",
+                )}
+              />
+            ))}
+          </div>
 
           {isCover && (
             <>
-              <h1 className="mt-1 text-2xl font-bold">{drawing.title}</h1>
+              <h1 className="font-display mt-1 text-2xl font-bold">
+                {drawing.title}
+              </h1>
               <p className="mt-1 text-lg">Here&apos;s what we&apos;ll draw!</p>
             </>
           )}
 
           {isFinish && (
             <>
-              <h1 className="mt-1 text-2xl font-bold">You did it! 🎉</h1>
+              <h1 className="font-display mt-1 text-2xl font-bold">
+                You did it! 🎉
+              </h1>
               <p className="mt-1 text-lg">
                 Great drawing, {profile.name}! Color it in however you like.
               </p>
@@ -198,22 +217,29 @@ export default function Show({ drawing, profile, artworks }: ShowProps) {
               </div>
             )}
 
-            <Button onClick={repeatDrawing} size="lg" className="w-full">
+            <Button onClick={repeatDrawing} size="xl" className="w-full">
               <Repeat /> Draw again
             </Button>
           </div>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-8">
           <Button
             variant="outline"
             onClick={() => go(page - 1)}
             disabled={page <= 0}
+            aria-label="Previous page"
+            className="size-16 rounded-full disabled:opacity-40 [&_svg:not([class*='size-'])]:size-8"
           >
-            <ChevronLeft /> Prev
+            <ChevronLeft />
           </Button>
-          <Button onClick={() => go(page + 1)} disabled={page >= lastPage}>
-            Next <ChevronRight />
+          <Button
+            onClick={() => go(page + 1)}
+            disabled={page >= lastPage}
+            aria-label="Next page"
+            className="size-16 rounded-full shadow-md disabled:opacity-40 disabled:shadow-none [&_svg:not([class*='size-'])]:size-8"
+          >
+            <ChevronRight />
           </Button>
         </div>
       </div>

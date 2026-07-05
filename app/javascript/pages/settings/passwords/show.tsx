@@ -13,19 +13,11 @@ import { Input } from "@/components/ui/input"
 import AppLayout from "@/layouts/app-layout"
 import SettingsLayout from "@/layouts/settings/layout"
 import { settingsPasswords } from "@/routes"
-import type { BreadcrumbItem } from "@/types"
-
-const breadcrumbs: BreadcrumbItem[] = [
-  {
-    title: "Password settings",
-    href: settingsPasswords.show().url,
-  },
-]
 
 export default function Password() {
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title={breadcrumbs[breadcrumbs.length - 1].title} />
+    <AppLayout>
+      <Head title="Password settings" />
 
       <SettingsLayout>
         <div className="space-y-6">

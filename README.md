@@ -17,16 +17,47 @@ renders the plan as a page-turning storybook of steps.
 
 ## Setup
 
-1. Install dependencies:
+### Prerequisites
+
+- [mise](https://mise.jdx.dev) — installs the pinned Ruby, Node, and pnpm
+  versions from [`mise.toml`](./mise.toml):
+  ```bash
+  mise install
+  ```
+  (Without mise, install the versions listed in `mise.toml` yourself.)
+- PostgreSQL running locally, e.g. on macOS:
+  ```bash
+  brew install postgresql@17
+  brew services start postgresql@17
+  ```
+  The app connects to `localhost` as your OS user by default; override with
+  `DB_HOST`, `DB_USERNAME`, and `DB_PASSWORD` if your setup differs.
+
+### Install and run
+
+1. Copy `.env.example` to `.env` and add an LLM provider key —
+   `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (`bin/dev` loads `.env` for you):
+   ```bash
+   cp .env.example .env
+   ```
+   The app boots without a key, but planning a drawing and generating steps
+   won't work until one is set.
+2. Run setup — installs gems and pnpm packages, prepares and seeds the
+   database, then starts the dev server:
    ```bash
    bin/setup
    ```
-2. Copy `.env.example` to `.env` and adjust as needed (e.g. LLM provider keys).
-3. Start the server:
-   ```bash
-   bin/dev
-   ```
-4. Open http://localhost:3000
+   (Pass `--skip-server` to stop before starting the server; later, start it
+   with `bin/dev`.)
+3. Open http://localhost:3000 and sign in with the seeded demo account:
+   `demo@example.com` / `Secret1*3*5*`. It comes with a demo kid profile and
+   one ready-made drawing.
+
+### Tests
+
+```bash
+bin/rails test
+```
 
 ## How it works
 

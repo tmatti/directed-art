@@ -23,8 +23,10 @@ module DirectedArt
   #
   # All LLM calls go through RubyLLM rather than a single provider SDK, so the
   # provider/model is a configuration choice, not an architectural commitment.
-  # The default provider is Claude (Anthropic); swap it via env without touching
-  # the generators that depend on these names.
+  # The default provider is OpenRouter, which proxies the underlying model
+  # vendors (Anthropic, OpenAI, …) behind a single key and namespaced model
+  # slugs; swap it via env without touching the generators that depend on these
+  # names.
   #
   # We tier models for cost (ADR-0006): a capable model for drawing generation,
   # and a cheap, fast model for the safety classification gate and lightweight
@@ -33,18 +35,22 @@ module DirectedArt
   # re-deciding the tier. Defined before the Application class so initializers
   # (and models) can reference it at boot.
   module LLM
-    # The provider behind every call: `:anthropic`, `:openai`, etc. — any
-    # RubyLLM provider. Default Claude, per ADR-0006.
-    PROVIDER = ENV.fetch("DIRECTED_ART_LLM_PROVIDER", "anthropic").to_sym
+    # The provider behind every call: `:openrouter`, `:anthropic`, `:openai`,
+    # etc. — any RubyLLM provider. Default OpenRouter, per ADR-0006, which
+    # reaches Claude (and other vendors) through one key.
+    PROVIDER = ENV.fetch("DIRECTED_ART_LLM_PROVIDER", "openrouter").to_sym
 
     # The capable model that produces a structured drawing from a Plan. Drawing
-    # generation is the demanding call, so it gets the stronger model.
-    GENERATION_MODEL = ENV.fetch("DIRECTED_ART_GENERATION_MODEL", "claude-sonnet-4-5")
+    # generation is the demanding call, so it gets the stronger model. OpenRouter
+    # uses vendor-namespaced slugs, so Claude Sonnet 4.5 is `anthropic/…` rather
+    # than the bare Anthropic id.
+    GENERATION_MODEL = ENV.fetch("DIRECTED_ART_GENERATION_MODEL", "anthropic/claude-sonnet-4.5")
 
     # The cheap, fast model for lightweight calls: the safety classification
     # gate on free-text Subjects and the guided-chat turns. Wired here so the
-    # safety slice can use it without re-deciding the tier.
-    LIGHTWEIGHT_MODEL = ENV.fetch("DIRECTED_ART_LIGHTWEIGHT_MODEL", "claude-haiku-4-5")
+    # safety slice can use it without re-deciding the tier. OpenRouter slug for
+    # the Claude Haiku 4.5 tier.
+    LIGHTWEIGHT_MODEL = ENV.fetch("DIRECTED_ART_LIGHTWEIGHT_MODEL", "anthropic/claude-haiku-4.5")
 
     class << self
       def provider = PROVIDER

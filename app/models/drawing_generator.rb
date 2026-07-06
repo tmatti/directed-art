@@ -11,8 +11,8 @@
 # or model swap can never silently produce a broken drawing — this adapter only
 # asks; `DrawingSchema` is the authority.
 #
-# Provider and model are configurable (ADR-0006: default Claude, swappable) via
-# the constructor and env (`DirectedArt::LLM`). The cheap lightweight model
+# Provider and model are configurable (ADR-0006: default OpenRouter, swappable)
+# via the constructor and env (`DirectedArt::LLM`). The cheap lightweight model
 # (safety gate, chat turns) is wired in `DirectedArt::LLM` for the slices that
 # need it; this generator uses the capable tier.
 class DrawingGenerator
@@ -98,7 +98,7 @@ class DrawingGenerator
     # The capable generation model (ADR-0006 tiering).
     def generation_model = DirectedArt::LLM.generation_model
 
-    # The configured provider (ADR-0006: default Claude, swappable).
+    # The configured provider (ADR-0006: default OpenRouter, swappable).
     def provider = DirectedArt::LLM.provider
   end
 

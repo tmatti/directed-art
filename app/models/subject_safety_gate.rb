@@ -57,7 +57,7 @@ class SubjectSafetyGate
     # model, which a classification call doesn't need.
     def lightweight_model = DirectedArt::LLM.lightweight_model
 
-    # The configured provider (ADR-0006: default Claude, swappable).
+    # The configured provider (ADR-0006: default OpenRouter, swappable).
     def provider = DirectedArt::LLM.provider
   end
 

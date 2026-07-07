@@ -35,8 +35,15 @@ renders the plan as a page-turning storybook of steps.
 
 ### Install and run
 
-1. Copy `.env.example` to `.env` and add an LLM provider key —
-   `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (`bin/dev` loads `.env` for you):
+1. Provide an LLM provider key. The app uses [OpenRouter](https://openrouter.ai)
+   as the default provider (one key reaches Claude and the other vendors). In
+   deployed environments the key lives in Rails credentials under
+   `openrouter.api_key`:
+   ```bash
+   bin/rails credentials:edit   # add:  openrouter:\n  api_key: sk-or-...
+   ```
+   For local dev, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`
+   instead (`bin/dev` loads `.env` for you):
    ```bash
    cp .env.example .env
    ```

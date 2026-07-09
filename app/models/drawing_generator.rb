@@ -22,6 +22,53 @@ class DrawingGenerator
   PROMPT_PATH = Rails.root.join("app/prompts/drawing_generation.md")
   PROMPT = PROMPT_PATH.read.freeze
 
+  # A bare number field in the structured-output schema.
+  NUMBER = { type: "number" }.freeze
+
+  # The [[x, y], …] list shared by polyline/polygon/curve. Anthropic rejects
+  # array `minItems`/`maxItems` other than 0 or 1, so the pair arity lives in
+  # the description and is enforced by `DrawingSchema`.
+  POINTS = {
+    type: "array",
+    description: "List of [x, y] pairs; each inner array has exactly two numbers",
+    items: { type: "array", items: { type: "number" } }
+  }.freeze
+
+  # Builds one primitive variant for the anyOf below: its geometry fields are
+  # required (matching `DrawingSchema`), `color` and any extras optional.
+  PRIMITIVE = lambda do |type, required, optional = {}|
+    {
+      type: "object",
+      properties: {
+        type: { const: type },
+        color: { type: "string", description: "Hex color for the cover" },
+        **required,
+        **optional
+      },
+      required: [ "type", *required.keys.map(&:to_s) ],
+      additionalProperties: false
+    }
+  end
+
+  # Each primitive type is its own small anyOf variant. Anthropic compiles the
+  # schema into a grammar, and a single object carrying every type's fields as
+  # ~16 optional properties is rejected as "Schema is too complex"; seven
+  # mostly-required variants compile fine and constrain the model better.
+  PRIMITIVES = {
+    type: "array",
+    items: {
+      anyOf: [
+        PRIMITIVE.call("circle", { cx: NUMBER, cy: NUMBER, r: NUMBER }),
+        PRIMITIVE.call("ellipse", { cx: NUMBER, cy: NUMBER, rx: NUMBER, ry: NUMBER }, { rotate: NUMBER }),
+        PRIMITIVE.call("line", { x1: NUMBER, y1: NUMBER, x2: NUMBER, y2: NUMBER }),
+        PRIMITIVE.call("arc", { cx: NUMBER, cy: NUMBER, r: NUMBER, start: NUMBER, end: NUMBER }),
+        PRIMITIVE.call("polyline", { points: POINTS }),
+        PRIMITIVE.call("polygon", { points: POINTS }),
+        PRIMITIVE.call("curve", { points: POINTS }, { closed: { type: "boolean" } })
+      ]
+    }
+  }.freeze
+
   # The structured-output JSON schema the model is asked to conform to. This is
   # a hint that gets well-shaped output; the app's own `DrawingSchema` is the
   # authority that rejects malformed drawings regardless of what the provider
@@ -52,28 +99,7 @@ class DrawingGenerator
             properties: {
               instruction: { type: "string", description: "Short kid-facing text" },
               narration: { type: "string", description: "Warm sentence read aloud" },
-              primitives: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    type: { type: "string", enum: %w[circle ellipse line polyline polygon arc curve] },
-                    color: { type: "string", description: "Hex color for the cover" },
-                    cx: { type: "number" }, cy: { type: "number" }, r: { type: "number" },
-                    rx: { type: "number" }, ry: { type: "number" }, rotate: { type: "number" },
-                    x1: { type: "number" }, y1: { type: "number" },
-                    x2: { type: "number" }, y2: { type: "number" },
-                    start: { type: "number" }, end: { type: "number" },
-                    points: {
-                      type: "array",
-                      items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 }
-                    },
-                    closed: { type: "boolean" }
-                  },
-                  required: %w[type],
-                  additionalProperties: false
-                }
-              }
+              primitives: PRIMITIVES
             },
             required: %w[instruction narration primitives],
             additionalProperties: false

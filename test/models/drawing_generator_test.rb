@@ -77,12 +77,14 @@ class DrawingGeneratorTest < ActiveSupport::TestCase
     assert_match(/closed: true/i, chat.instructions)
     assert_match(/taper/i, chat.instructions)
 
-    # The structured-output schema describes the Primitive DSL: the fixed
-    # primitive type enum and the step canvas/instruction/narration shape.
+    # The structured-output schema describes the Primitive DSL: one anyOf
+    # variant per primitive type (small variants keep Anthropic's schema
+    # compiler happy) and the step canvas/instruction/narration shape.
     schema = chat.schema
     assert_kind_of Hash, schema
-    type_enum = schema.dig(:schema, :properties, :steps, :items, :properties, :primitives, :items, :properties, :type, :enum)
-    assert_equal %w[circle ellipse line polyline polygon arc curve], type_enum
+    variants = schema.dig(:schema, :properties, :steps, :items, :properties, :primitives, :items, :anyOf)
+    assert_equal %w[circle ellipse line arc polyline polygon curve],
+      variants.map { |variant| variant.dig(:properties, :type, :const) }
     required = schema.dig(:schema, :required)
     assert_includes required, "subject"
     assert_includes required, "steps"

@@ -6,7 +6,7 @@
     "@babel/core": "^7.29.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
-    "@typescript/native-preview": "^7.0.0-dev",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.2",
